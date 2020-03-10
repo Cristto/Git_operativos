@@ -1,11 +1,11 @@
 // Mi primer programa
-50  // Tamanio del programa en posiciones de memoria
+50 // Tamanio del programa en posiciones de memoria
 5 //prioridad
 ADD 9 0
-WRITE 100
-MEMADD 1 100
-WRITE 100
-MEMADD -19 100
+WRITE 10
+MEMADD 1 10
+WRITE 10
+MEMADD -19 10
 ZJUMP 2  // Si el registro acumulador==0, saltar dos posiciones de memoria hacia adelante
 JUMP -4
 HALT

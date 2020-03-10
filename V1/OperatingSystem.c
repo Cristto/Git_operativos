@@ -33,9 +33,9 @@ void OperatingSystem_PrintReadyToRunQueue();
 char * statesNames [5]={"NEW","READY","EXECUTING","BLOCKED","EXIT"};
 
 // V1 Ej 11.a
-//heapItem readyToRunQueue [NUMBEROFQUEUES][PROCESSTABLEMAXSIZE];
-//int numberOfReadyToRunProcesses[NUMBEROFQUEUES]={0,0};
-//char * queueNames [NUMBEROFQUEUES]={"USER","DAEMONS"};
+heapItem readyToRunQueue [NUMBEROFQUEUES][PROCESSTABLEMAXSIZE];
+int numberOfReadyToRunProcesses[NUMBEROFQUEUES]={0,0};
+char * queueNames [NUMBEROFQUEUES]={"USER","DAEMONS"};
 
 // The process table
 PCB processTable[PROCESSTABLEMAXSIZE];
@@ -56,8 +56,8 @@ int initialPID=0;
 int baseDaemonsInProgramList; 
 
 // Array that contains the identifiers of the READY processes
-heapItem readyToRunQueue[PROCESSTABLEMAXSIZE]; 
-int numberOfReadyToRunProcesses=0;
+//heapItem readyToRunQueue[PROCESSTABLEMAXSIZE]; 
+//int numberOfReadyToRunProcesses=0;
 
 // Variable containing the number of not terminated user processes
 int numberOfNotTerminatedUserProcesses=0;
@@ -84,8 +84,13 @@ void OperatingSystem_Initialize(int daemonsIndex) {
 	// Include in program list  all system daemon processes
 	OperatingSystem_PrepareDaemons(daemonsIndex);
 	
-	// Create all user processes from the information given in the command line
+	// Create all user processes from the information given in the command line	
 	OperatingSystem_LongTermScheduler();
+	// V1 Ej 15 
+	if(numberOfNotTerminatedUserProcesses==0){
+		OperatingSystem_ReadyToShutdown();
+	}
+	
 	
 	if (strcmp(programList[processTable[sipID].programListIndex]->executableName,"SystemIdleProcess")) {
 		// Show red message "FATAL ERROR: Missing SIP program!\n"
@@ -135,20 +140,30 @@ int OperatingSystem_LongTermScheduler() {
 	for (i=0; programList[i]!=NULL && i<PROGRAMSMAXNUMBER ; i++) {
 		PID=OperatingSystem_CreateProcess(i);
 		//V0 Ej 4.b
-		if(PID==NOFREEENTRY)
-			ComputerSystem_DebugMessage(103,ERROR,programList[i]->executableName);		
-		if(PID==PROGRAMNOTVALID)
-			ComputerSystem_DebugMessage(104,ERROR,programList[i]->executableName,"invalid priority or size");
-		if(PID==PROGRAMDOESNOTEXIST)
-			ComputerSystem_DebugMessage(104,ERROR,programList[i]->executableName,"it does not exist");
-		if(PID==TOOBIGPROCESS)
-			ComputerSystem_DebugMessage(105,ERROR,programList[i]->executableName);
+		switch (PID)
+		{
+			case NOFREEENTRY:
+				ComputerSystem_DebugMessage(103,ERROR,programList[i]->executableName);		
+			break;
+			case PROGRAMNOTVALID:
+				ComputerSystem_DebugMessage(104,ERROR,programList[i]->executableName,"invalid priority or size");
+			break;
+			case PROGRAMDOESNOTEXIST:
+				ComputerSystem_DebugMessage(104,ERROR,programList[i]->executableName,"it does not exist");
+			break;
+			case TOOBIGPROCESS:
+				ComputerSystem_DebugMessage(105,ERROR,programList[i]->executableName);		
+			break;
 
-		numberOfSuccessfullyCreatedProcesses++;
-		if (programList[i]->type==USERPROGRAM) 
-			numberOfNotTerminatedUserProcesses++;
-		// Move process to the ready state
-		OperatingSystem_MoveToTheREADYState(PID);
+			default:
+				numberOfSuccessfullyCreatedProcesses++;
+				if (programList[i]->type==USERPROGRAM) 
+					numberOfNotTerminatedUserProcesses++;
+				// Move process to the ready state
+				OperatingSystem_MoveToTheREADYState(PID);
+		}		
+
+		
 	}
 
 	// Return the number of succesfully created processes
@@ -235,17 +250,21 @@ void OperatingSystem_PCBInitialization(int PID, int initialPhysicalAddress, int 
 
 	processTable[PID].priority=priority;
 	processTable[PID].programListIndex=processPLIndex;
+	
+	// V1 Ej 16.b modo protegido.
 	// Daemons run in protected mode and MMU use real address
 	if (programList[processPLIndex]->type == DAEMONPROGRAM) {
 		processTable[PID].copyOfPCRegister=initialPhysicalAddress;
 		processTable[PID].copyOfPSWRegister= ((unsigned int) 1) << EXECUTION_MODE_BIT;
-		//processTable[PID].queueID=DAEMONSQUEUE; // V1 Ej 11.c
+		processTable[PID].queueID=DAEMONSQUEUE; // V1 Ej 11.c
 	} 
 	else {
 		processTable[PID].copyOfPCRegister=0;
 		processTable[PID].copyOfPSWRegister=0;
+		// V1 Ej 13
+		processTable[PID].copyOfAcummRegister=0;
 		// V1 Ej 11.c
-		//processTable[PID].queueID=USERPROCESSQUEUE;
+		processTable[PID].queueID=USERPROCESSQUEUE;
 	}	
 
 }
@@ -255,9 +274,9 @@ void OperatingSystem_PCBInitialization(int PID, int initialPhysicalAddress, int 
 // a queue of identifiers of READY processes
 void OperatingSystem_MoveToTheREADYState(int PID) {
 
-	//int queueID=processTable[PID].queueID; // V1 Ej 11.c
+	int queueID=processTable[PID].queueID; // V1 Ej 11.c
 	
-	if (Heap_add(PID, readyToRunQueue,QUEUE_PRIORITY ,&numberOfReadyToRunProcesses ,PROCESSTABLEMAXSIZE)>=0) {
+	if (Heap_add(PID, readyToRunQueue[queueID],QUEUE_PRIORITY ,&numberOfReadyToRunProcesses[queueID] ,PROCESSTABLEMAXSIZE)>=0) {
 		int estadoAnterior=processTable[PID].state;
 		processTable[PID].state=READY;
 		// V1 Ej 10.b
@@ -289,9 +308,10 @@ int OperatingSystem_ShortTermScheduler() {
 // Return PID of more priority process in the READY queue
 int OperatingSystem_ExtractFromReadyToRun() {
   
-	int selectedProcess=NOPROCESS;	
+	int selectedProcess=NOPROCESS;
+	int queueID=processTable[selectedProcess].queueID; // V1 Ej 11.c	
 
-	selectedProcess=Heap_poll(readyToRunQueue,QUEUE_PRIORITY ,&numberOfReadyToRunProcesses);
+	selectedProcess=Heap_poll(readyToRunQueue[queueID],QUEUE_PRIORITY ,&numberOfReadyToRunProcesses[queueID]);
 	
 	// Return most priority process or NOPROCESS if empty queue
 	return selectedProcess; 
@@ -324,6 +344,9 @@ void OperatingSystem_RestoreContext(int PID) {
 	// New values for the CPU registers are obtained from the PCB
 	Processor_CopyInSystemStack(MAINMEMORYSIZE-1,processTable[PID].copyOfPCRegister);
 	Processor_CopyInSystemStack(MAINMEMORYSIZE-2,processTable[PID].copyOfPSWRegister);
+
+	 // V1, Ej 13
+	Processor_CopyInSystemStack(MAINMEMORYSIZE-3,processTable[PID].copyOfAcummRegister);
 	
 	// Same thing for the MMU registers
 	MMU_SetBase(processTable[PID].initialPhysicalAddress);
@@ -351,6 +374,9 @@ void OperatingSystem_SaveContext(int PID) {
 	
 	// Load PSW saved for interrupt manager
 	processTable[PID].copyOfPSWRegister=Processor_CopyFromSystemStack(MAINMEMORYSIZE-2);
+
+	// V1 Ej 13
+	processTable[PID].copyOfAcummRegister=Processor_CopyFromSystemStack(MAINMEMORYSIZE-3);
 	
 }
 
@@ -383,8 +409,9 @@ void OperatingSystem_TerminateProcess() {
 		// One more user process that has terminated
 		numberOfNotTerminatedUserProcesses--;
 	
+	// V1 Ej 14 mirarlo
 	if (numberOfNotTerminatedUserProcesses==0) {
-		if (executingProcessID==sipID) {
+		if (executingProcessID==sipID) { // si el que se esta ejecutando es el daemmon
 			// finishing sipID, change PC to address of OS HALT instruction
 			Processor_CopyInSystemStack(MAINMEMORYSIZE-1,OS_address_base+1);
 			ComputerSystem_DebugMessage(99,SHUTDOWN,"The system will shut down now...\n");
@@ -404,6 +431,10 @@ void OperatingSystem_TerminateProcess() {
 void OperatingSystem_HandleSystemCall() {
   
 	int systemCallID;
+	int pid_proceso_ejecutandose;
+	int prioridad_proceso_ejecutandose;
+	int pid_proceso_ready;
+	int prioridad_proceso_ready;
 
 	// Register A contains the identifier of the issued system call
 	systemCallID=Processor_GetRegisterA();
@@ -419,6 +450,28 @@ void OperatingSystem_HandleSystemCall() {
 			ComputerSystem_DebugMessage(73,SYSPROC,executingProcessID,programList[processTable[executingProcessID].programListIndex]->executableName);
 			OperatingSystem_TerminateProcess();
 			break;
+		
+		case SYSCALL_YIELD: // V1 Ej 12	
+			// proceso que esta ejecutandose en el procesador		
+			pid_proceso_ejecutandose=processTable[executingProcessID].programListIndex;
+			prioridad_proceso_ejecutandose=processTable[executingProcessID].priority;
+			//proceso que esta con la prioridad mas alta en la cola de listos
+			pid_proceso_ready=OperatingSystem_ShortTermScheduler();
+			prioridad_proceso_ready=processTable[pid_proceso_ready].priority;
+
+			if(prioridad_proceso_ejecutandose==prioridad_proceso_ready){
+				ComputerSystem_DebugMessage(115,SHORTTERMSCHEDULE,
+											prioridad_proceso_ejecutandose,
+											programList[pid_proceso_ejecutandose]->executableName,
+											pid_proceso_ready,
+											programList[pid_proceso_ready]->executableName
+											);
+			OperatingSystem_PreemptRunningProcess(); // el proceso sale del procesador
+			OperatingSystem_ShortTermScheduler(); // lo saco de la cola de listos para que no se ejecute de nuevo
+			OperatingSystem_Dispatch(pid_proceso_ready); // el proceso nuevo se mete en el procesador, state=executing		
+			}
+
+		break;
 	}
 }
 	
@@ -437,38 +490,44 @@ void OperatingSystem_InterruptLogic(int entryPoint){
 
 ///////////// Funciones nuevas ///////////////////
 // V1 Ej 11.b
-/*
+
 void OperatingSystem_PrintReadyToRunQueue(){
 
 	ComputerSystem_DebugMessage(106,SHORTTERMSCHEDULE,"Ready-to-run processes queues:\n");
 	int i,aux_pid,prioridad;
-	for(i=0;i<numberOfReadyToRunProcesses[USERPROCESSQUEUE];i++){
-		aux_pid=readyToRunQueue[USERPROCESSQUEUE][i].info;
-		prioridad=processTable[aux_pid].priority;
-		if(i!=numberOfReadyToRunProcesses-1){
-			ComputerSystem_DebugMessage(112,SHORTTERMSCHEDULE,aux_pid,prioridad);
-			printf(", ");
-		}else{		
-			ComputerSystem_DebugMessage(112,SHORTTERMSCHEDULE,aux_pid,prioridad);			
-		}						
+	if(numberOfReadyToRunProcesses[USERPROCESSQUEUE]>0){
+		ComputerSystem_DebugMessage(112,SHORTTERMSCHEDULE);
+		for(i=0;i<numberOfReadyToRunProcesses[USERPROCESSQUEUE];i++){
+			aux_pid=readyToRunQueue[USERPROCESSQUEUE][i].info;
+			prioridad=processTable[aux_pid].priority;
+			if(i==numberOfReadyToRunProcesses[USERPROCESSQUEUE]-1){
+				ComputerSystem_DebugMessage(114,SHORTTERMSCHEDULE,aux_pid,prioridad);
+				printf("\n");
+			}else{		
+				ComputerSystem_DebugMessage(114,SHORTTERMSCHEDULE,aux_pid,prioridad);
+				printf(", ");			
+			}						
+		}
 	}
-	printf("\n");
 	
+	ComputerSystem_DebugMessage(113,SHORTTERMSCHEDULE);
 	for(i=0;i<numberOfReadyToRunProcesses[DAEMONSQUEUE];i++){
 		aux_pid=readyToRunQueue[DAEMONSQUEUE][i].info;
 		prioridad=processTable[aux_pid].priority;
-		if(i!=numberOfReadyToRunProcesses-1){
-			ComputerSystem_DebugMessage(113,SHORTTERMSCHEDULE,aux_pid,prioridad);
-			printf(", ");
+		if(i==numberOfReadyToRunProcesses[DAEMONSQUEUE]-1){
+			ComputerSystem_DebugMessage(114,SHORTTERMSCHEDULE,aux_pid,prioridad);
+			printf("\n");
 		}else{		
-			ComputerSystem_DebugMessage(113,SHORTTERMSCHEDULE,aux_pid,prioridad);			
+			ComputerSystem_DebugMessage(114,SHORTTERMSCHEDULE,aux_pid,prioridad);
+			printf(", ");			
 		}						
 	}
-	printf("\n");
+	
 	
 
 }
-*/
+
+/*
 
 // V1 Ej 9.a
 void OperatingSystem_PrintReadyToRunQueue(){
@@ -478,16 +537,17 @@ void OperatingSystem_PrintReadyToRunQueue(){
 	for(i=0;i<numberOfReadyToRunProcesses;i++){
 		aux_pid=readyToRunQueue[i].info;
 		prioridad=processTable[aux_pid].priority;
-		if(i!=numberOfReadyToRunProcesses-1){
-			ComputerSystem_DebugMessage(107,SHORTTERMSCHEDULE,aux_pid,prioridad);
-			printf(", ");
-		}else{		
+		if(i==numberOfReadyToRunProcesses-1){
 			ComputerSystem_DebugMessage(107,SHORTTERMSCHEDULE,aux_pid,prioridad);			
+		}		
+		else{		
+			ComputerSystem_DebugMessage(107,SHORTTERMSCHEDULE,aux_pid,prioridad);
+			printf(", ");		
 		}						
 	}
 	printf("\n");
 	
 
-}
+}*/
 
 

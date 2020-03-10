@@ -967,16 +967,19 @@ extern void funlockfile (FILE *__stream) __attribute__ ((__nothrow__ , __leaf__)
 # 868 "/usr/include/stdio.h" 3 4
 
 # 6 "OperatingSystem.h" 2
-# 22 "OperatingSystem.h"
+# 23 "OperatingSystem.h"
 
-# 22 "OperatingSystem.h"
+# 23 "OperatingSystem.h"
+enum TypeOfReadyToRunProcessQueues { USERPROCESSQUEUE, DAEMONSQUEUE};
+
+
 enum ProgramTypes { USERPROGRAM, DAEMONPROGRAM };
 
 
 enum ProcessStates { NEW, READY, EXECUTING, BLOCKED, EXIT};
 
 
-enum SystemCallIdentifiers { SYSCALL_END=3, SYSCALL_PRINTEXECPID=5};
+enum SystemCallIdentifiers { SYSCALL_END=3, SYSCALL_YIELD=4, SYSCALL_PRINTEXECPID=5};
 
 
 typedef struct {
@@ -985,8 +988,10 @@ typedef struct {
  int processSize;
  int state;
  int priority;
+ int queueID;
  int copyOfPCRegister;
  unsigned int copyOfPSWRegister;
+ int copyOfAcummRegister;
  int programListIndex;
 } PCB;
 
@@ -1493,25 +1498,51 @@ void Processor_DecodeAndExecuteInstruction() {
 
 
   case HALT_INST:
-   Processor_ActivatePSW_Bit(POWEROFF_BIT);
+
+   if(Processor_PSW_BitState(EXECUTION_MODE_BIT)){
+    Processor_ActivatePSW_Bit(POWEROFF_BIT);
+   }
+   else
+   {
+    Processor_RaiseInterrupt(EXCEPTION_BIT);
+   }
+
    break;
 
 
   case OS_INST:
 
 
-   ComputerSystem_DebugMessage(69, 'h',InstructionNames[operationCode],operand1,operand2,registerPC_CPU,registerAccumulator_CPU,registerPSW_CPU,Processor_ShowPSW());
 
-   OperatingSystem_InterruptLogic(operand1);
-   registerPC_CPU++;
+   if(Processor_PSW_BitState(EXECUTION_MODE_BIT)){
 
-   Processor_UpdatePSW();
+
+    ComputerSystem_DebugMessage(69, 'h',InstructionNames[operationCode],operand1,operand2,registerPC_CPU,registerAccumulator_CPU,registerPSW_CPU,Processor_ShowPSW());
+
+    OperatingSystem_InterruptLogic(operand1);
+    registerPC_CPU++;
+
+    Processor_UpdatePSW();
+   }
+   else
+   {
+    Processor_RaiseInterrupt(EXCEPTION_BIT);
+   }
+
    return;
 
 
   case IRET_INST:
-   registerPC_CPU=Processor_CopyFromSystemStack(300 -1);
-   registerPSW_CPU=Processor_CopyFromSystemStack(300 -2);
+
+   if(Processor_PSW_BitState(EXECUTION_MODE_BIT)){
+    registerPC_CPU=Processor_CopyFromSystemStack(300 -1);
+    registerPSW_CPU=Processor_CopyFromSystemStack(300 -2);
+
+    registerAccumulator_CPU=Processor_CopyFromSystemStack(300 -3);
+   }
+   else{
+    Processor_RaiseInterrupt(EXCEPTION_BIT);
+   }
    break;
 
 
@@ -1542,6 +1573,8 @@ void Processor_ManageInterrupts() {
 
     Processor_CopyInSystemStack(300 -1, registerPC_CPU);
     Processor_CopyInSystemStack(300 -2, registerPSW_CPU);
+
+    Processor_CopyInSystemStack(300 -3, registerAccumulator_CPU);
 
     Processor_ActivatePSW_Bit(EXECUTION_MODE_BIT);
 
