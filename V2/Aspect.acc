@@ -101,9 +101,13 @@ extern int intervalBetweenInterrupts;
 # 6 "ComputerSystem.h" 2
 
 
+
 void ComputerSystem_PowerOn(int argc, char *argv[], int);
 void ComputerSystem_PowerOff();
-# 33 "ComputerSystem.h"
+
+
+void ComputerSystem_ShowTime(char section);
+# 37 "ComputerSystem.h"
 typedef struct ProgramData {
     char *executableName;
     unsigned int arrivalTime;
@@ -916,7 +920,7 @@ enum ProgramTypes { USERPROGRAM, DAEMONPROGRAM };
 enum ProcessStates { NEW, READY, EXECUTING, BLOCKED, EXIT};
 
 
-enum SystemCallIdentifiers { SYSCALL_END=3, SYSCALL_YIELD=4, SYSCALL_PRINTEXECPID=5, SYSCALL_SLEEP=7};
+enum SystemCallIdentifiers { SYSCALL_END=3, SYSCALL_YIELD=4, SYSCALL_PRINTEXECPID=5};
 
 
 typedef struct {
@@ -925,11 +929,11 @@ typedef struct {
  int processSize;
  int state;
  int priority;
+ int whenToWakeUp;
  int queueID;
  int copyOfPCRegister;
  unsigned int copyOfPSWRegister;
  int copyOfAcummRegister;
- int whenToWakeUp;
  int programListIndex;
 } PCB;
 

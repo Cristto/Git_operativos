@@ -128,12 +128,11 @@ int Processor_ToInstruction(char *);
 
 
 
-enum PSW_BITS {POWEROFF_BIT=0, ZERO_BIT=1, NEGATIVE_BIT=2, OVERFLOW_BIT=3, EXECUTION_MODE_BIT=7,
-INTERRUPT_MASKED_BIT=15};
+enum PSW_BITS {POWEROFF_BIT=0, ZERO_BIT=1, NEGATIVE_BIT=2, OVERFLOW_BIT=3, EXECUTION_MODE_BIT=7, INTERRUPT_MASKED_BIT=15};
 
 
 
-enum INT_BITS {SYSCALL_BIT=2, EXCEPTION_BIT=6, CLOCKINT_BIT=9};
+enum INT_BITS {SYSCALL_BIT=2, EXCEPTION_BIT=6, SYSCALL_SLEEP=7, CLOCKINT_BIT=9};
 
 
 void Processor_InitializeInterruptVectorTable();
@@ -169,11 +168,22 @@ void ComputerSystem_DebugMessage(int, char , ...);
 extern char defaultDebugLevel[];
 extern int intervalBetweenInterrupts;
 # 6 "ComputerSystem.h" 2
+# 1 "Clock.h" 1
+
+
+
+
+void Clock_Update();
+int Clock_GetTime();
+# 7 "ComputerSystem.h" 2
 
 
 void ComputerSystem_PowerOn(int argc, char *argv[], int);
 void ComputerSystem_PowerOff();
-# 33 "ComputerSystem.h"
+
+
+void ComputerSystem_ShowTime(char section);
+# 37 "ComputerSystem.h"
 typedef struct ProgramData {
     char *executableName;
     unsigned int arrivalTime;
@@ -969,9 +979,9 @@ extern void funlockfile (FILE *__stream) __attribute__ ((__nothrow__ , __leaf__)
 # 868 "/usr/include/stdio.h" 3 4
 
 # 6 "OperatingSystem.h" 2
-# 23 "OperatingSystem.h"
+# 25 "OperatingSystem.h"
 
-# 23 "OperatingSystem.h"
+# 25 "OperatingSystem.h"
 enum TypeOfReadyToRunProcessQueues { USERPROCESSQUEUE, DAEMONSQUEUE};
 
 
@@ -990,6 +1000,7 @@ typedef struct {
  int processSize;
  int state;
  int priority;
+ int whenToWakeUp;
  int queueID;
  int copyOfPCRegister;
  unsigned int copyOfPSWRegister;
@@ -1008,14 +1019,6 @@ void OperatingSystem_Initialize();
 void OperatingSystem_InterruptLogic(int);
 # 4 "Processor.c" 2
 
-# 1 "Clock.h" 1
-
-
-
-
-void Clock_Update();
-int Clock_GetTime();
-# 6 "Processor.c" 2
 
 # 1 "/usr/include/string.h" 1 3 4
 # 26 "/usr/include/string.h" 3 4
@@ -1298,18 +1301,15 @@ extern char *stpncpy (char *__restrict __dest,
      __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
 # 498 "/usr/include/string.h" 3 4
 
-# 8 "Processor.c" 2
+# 7 "Processor.c" 2
 
 
 
 
-# 11 "Processor.c"
+# 10 "Processor.c"
 int Processor_FetchInstruction();
 void Processor_DecodeAndExecuteInstruction();
 void Processor_ManageInterrupts();
-
-
-
 
 
 extern char *InstructionNames[];
@@ -1331,261 +1331,263 @@ int interruptLines_CPU;
 int interruptVectorTable[10];
 
 
-char pswmask []="----------------";
+char pswmask[] = "----------------";
 
 
-void Processor_InitializeInterruptVectorTable(int interruptVectorInitialAddress) {
+void Processor_InitializeInterruptVectorTable(int interruptVectorInitialAddress)
+{
  int i;
- for (i=0; i< 10;i++)
-  interruptVectorTable[i]=interruptVectorInitialAddress-2;
+ for (i = 0; i < 10; i++)
+  interruptVectorTable[i] = interruptVectorInitialAddress - 2;
 
- interruptVectorTable[SYSCALL_BIT]=interruptVectorInitialAddress;
- interruptVectorTable[EXCEPTION_BIT]=interruptVectorInitialAddress+2;
+ interruptVectorTable[SYSCALL_BIT] = interruptVectorInitialAddress;
+ interruptVectorTable[EXCEPTION_BIT] = interruptVectorInitialAddress + 2;
 }
 
 
 
 
+void Processor_InstructionCycleLoop()
+{
 
-void Processor_InstructionCycleLoop() {
-
- while (!Processor_PSW_BitState(POWEROFF_BIT)) {
-  if (Processor_FetchInstruction()==1){
+ while (!Processor_PSW_BitState(POWEROFF_BIT))
+ {
+  if (Processor_FetchInstruction() == 1)
+  {
    Processor_DecodeAndExecuteInstruction();
   }
+  if (interruptLines_CPU)
+  {
 
 
-  if (interruptLines_CPU){
-   if(!Processor_PSW_BitState(INTERRUPT_MASKED_BIT)){
+   if (!Processor_PSW_BitState(INTERRUPT_MASKED_BIT)){
     Processor_ManageInterrupts();
    }
-
   }
-
  }
 }
 
 
-int Processor_FetchInstruction() {
+int Processor_FetchInstruction()
+{
 
 
- registerMAR_CPU=registerPC_CPU;
+ registerMAR_CPU = registerPC_CPU;
 
  Buses_write_AddressBus_From_To(CPU, MMU);
 
- registerCTRL_CPU=0x1;
- Buses_write_ControlBus_From_To(CPU,MMU);
+ registerCTRL_CPU = 0x1;
+ Buses_write_ControlBus_From_To(CPU, MMU);
 
- if (registerCTRL_CPU && 0x10) {
+ if (registerCTRL_CPU && 0x10)
+ {
 
 
-  memcpy((void *) (&registerIR_CPU), (void *) (&registerMBR_CPU), sizeof(BUSDATACELL));
+  memcpy((void *)(&registerIR_CPU), (void *)(&registerMBR_CPU), sizeof(BUSDATACELL));
 
 
   char codedInstruction[13];
-  Processor_GetCodedInstruction(codedInstruction,registerIR_CPU);
+  Processor_GetCodedInstruction(codedInstruction, registerIR_CPU);
 
 
-
-  ComputerSystem_DebugMessage(Processor_PSW_BitState(EXECUTION_MODE_BIT)?117:116,'h',Clock_GetTime());
+  ComputerSystem_ShowTime('h');
 
   ComputerSystem_DebugMessage(68, 'h', codedInstruction);
  }
- else {
+ else
+ {
 
 
+  ComputerSystem_ShowTime('h');
 
-  ComputerSystem_DebugMessage(Processor_PSW_BitState(EXECUTION_MODE_BIT)?117:116,'h',Clock_GetTime());
 
-
-  ComputerSystem_DebugMessage(100,'h',"_ _ _\n");
+  ComputerSystem_DebugMessage(100, 'h', "_ _ _\n");
   return 0;
  }
  return 1;
 }
 
 
-
-void Processor_DecodeAndExecuteInstruction() {
+void Processor_DecodeAndExecuteInstruction()
+{
  int tempAcc;
 
 
- int operationCode=Processor_DecodeOperationCode(registerIR_CPU);
- int operand1=Processor_DecodeOperand1(registerIR_CPU);
- int operand2=Processor_DecodeOperand2(registerIR_CPU);
+ int operationCode = Processor_DecodeOperationCode(registerIR_CPU);
+ int operand1 = Processor_DecodeOperand1(registerIR_CPU);
+ int operand2 = Processor_DecodeOperand2(registerIR_CPU);
 
  Processor_DeactivatePSW_Bit(OVERFLOW_BIT);
 
 
- switch (operationCode) {
+ switch (operationCode)
+ {
 
 
-  case ADD_INST:
-   registerAccumulator_CPU= operand1 + operand2;
-   Processor_CheckOverflow(operand1,operand2);
+ case ADD_INST:
+  registerAccumulator_CPU = operand1 + operand2;
+  Processor_CheckOverflow(operand1, operand2);
+  registerPC_CPU++;
+  break;
+
+
+ case SHIFT_INST:
+  if (operand1 < 0)
+  {
+   if (registerAccumulator_CPU & (-1 << (sizeof(int) * 8 - ((-operand1) & 0x1f))))
+    Processor_ActivatePSW_Bit(OVERFLOW_BIT);
+   registerAccumulator_CPU <<= ((-operand1) & 0x1f);
+  }
+  else
+   registerAccumulator_CPU >>= operand1 & 0x1f;
+
+  registerPC_CPU++;
+  break;
+
+
+ case DIV_INST:
+  if (operand2 == 0)
+   Processor_RaiseInterrupt(EXCEPTION_BIT);
+  else
+  {
+   registerAccumulator_CPU = operand1 / operand2;
    registerPC_CPU++;
-   break;
+  }
+  break;
 
 
-  case SHIFT_INST:
-     if (operand1<0) {
-      if (registerAccumulator_CPU & (-1<<(sizeof(int)*8-((-operand1)&0x1f))))
-       Processor_ActivatePSW_Bit(OVERFLOW_BIT);
-      registerAccumulator_CPU <<= ((-operand1) & 0x1f);
-     }
-     else
-      registerAccumulator_CPU >>= operand1 & 0x1f;
-
-     registerPC_CPU++;
-     break;
+ case TRAP_INST:
+  Processor_RaiseInterrupt(SYSCALL_BIT);
+  registerA_CPU = operand1;
+  registerPC_CPU++;
+  break;
 
 
-  case DIV_INST:
-   if (operand2 == 0)
-    Processor_RaiseInterrupt(EXCEPTION_BIT);
-   else {
-    registerAccumulator_CPU=operand1 / operand2;
-    registerPC_CPU++;
-   }
-   break;
+ case NOP_INST:
+  registerPC_CPU++;
+  break;
 
 
-  case TRAP_INST:
-   Processor_RaiseInterrupt(SYSCALL_BIT);
-   registerA_CPU=operand1;
+ case JUMP_INST:
+  registerPC_CPU += operand1;
+  break;
+
+
+ case ZJUMP_INST:
+  if (Processor_PSW_BitState(ZERO_BIT))
+   registerPC_CPU += operand1;
+  else
    registerPC_CPU++;
-   break;
+  break;
 
 
-  case NOP_INST:
+ case WRITE_INST:
+  registerMBR_CPU.cell = registerAccumulator_CPU;
+  registerMAR_CPU = operand1;
+
+  Buses_write_DataBus_From_To(CPU, MAINMEMORY);
+
+  Buses_write_AddressBus_From_To(CPU, MMU);
+
+  registerCTRL_CPU = 0x2;
+  Buses_write_ControlBus_From_To(CPU, MMU);
+  registerPC_CPU++;
+  break;
+
+
+
+ case MEMADD_INST:
+  registerMAR_CPU = operand2;
+
+  Buses_write_AddressBus_From_To(CPU, MMU);
+
+  registerCTRL_CPU = 0x1;
+  Buses_write_ControlBus_From_To(CPU, MMU);
+
+
+  registerAccumulator_CPU = operand1 + registerMBR_CPU.cell;
+  registerPC_CPU++;
+  break;
+
+
+ case READ_INST:
+  registerMAR_CPU = operand1;
+
+  Buses_write_AddressBus_From_To(CPU, MMU);
+
+  registerCTRL_CPU = 0x1;
+  Buses_write_ControlBus_From_To(CPU, MMU);
+
+
+  registerAccumulator_CPU = registerMBR_CPU.cell;
+  registerPC_CPU++;
+  break;
+
+
+ case INC_INST:
+  tempAcc = registerAccumulator_CPU;
+  registerAccumulator_CPU += operand1;
+  Processor_CheckOverflow(tempAcc, operand1);
+  registerPC_CPU++;
+  break;
+
+
+ case HALT_INST:
+
+  if (Processor_PSW_BitState(EXECUTION_MODE_BIT))
+  {
+   Processor_ActivatePSW_Bit(POWEROFF_BIT);
+  }
+  else
+  {
+   Processor_RaiseInterrupt(EXCEPTION_BIT);
+  }
+
+  break;
+
+
+ case OS_INST:
+
+
+
+  if (Processor_PSW_BitState(EXECUTION_MODE_BIT))
+  {
+
+
+   ComputerSystem_DebugMessage(69, 'h', InstructionNames[operationCode], operand1, operand2, registerPC_CPU, registerAccumulator_CPU, registerPSW_CPU, Processor_ShowPSW());
+
+   OperatingSystem_InterruptLogic(operand1);
    registerPC_CPU++;
-   break;
+
+   Processor_UpdatePSW();
+  }
+  else
+  {
+   Processor_RaiseInterrupt(EXCEPTION_BIT);
+  }
+
+  return;
 
 
-  case JUMP_INST:
-   registerPC_CPU+= operand1;
-   break;
+ case IRET_INST:
+
+  if (Processor_PSW_BitState(EXECUTION_MODE_BIT))
+  {
+   registerPC_CPU = Processor_CopyFromSystemStack(300 - 1);
+   registerPSW_CPU = Processor_CopyFromSystemStack(300 - 2);
+
+   registerAccumulator_CPU = Processor_CopyFromSystemStack(300 - 3);
+  }
+  else
+  {
+   Processor_RaiseInterrupt(EXCEPTION_BIT);
+  }
+  break;
 
 
-  case ZJUMP_INST:
-   if (Processor_PSW_BitState(ZERO_BIT))
-    registerPC_CPU+= operand1;
-   else
-    registerPC_CPU++;
-   break;
-
-
-  case WRITE_INST:
-   registerMBR_CPU.cell=registerAccumulator_CPU;
-   registerMAR_CPU=operand1;
-
-   Buses_write_DataBus_From_To(CPU, MAINMEMORY);
-
-   Buses_write_AddressBus_From_To(CPU, MMU);
-
-   registerCTRL_CPU=0x2;
-   Buses_write_ControlBus_From_To(CPU,MMU);
-   registerPC_CPU++;
-   break;
-
-
-
-  case MEMADD_INST:
-   registerMAR_CPU=operand2;
-
-   Buses_write_AddressBus_From_To(CPU, MMU);
-
-   registerCTRL_CPU=0x1;
-   Buses_write_ControlBus_From_To(CPU,MMU);
-
-
-   registerAccumulator_CPU= operand1 + registerMBR_CPU.cell;
-   registerPC_CPU++;
-   break;
-
-
-  case READ_INST:
-   registerMAR_CPU=operand1;
-
-   Buses_write_AddressBus_From_To(CPU, MMU);
-
-   registerCTRL_CPU=0x1;
-   Buses_write_ControlBus_From_To(CPU,MMU);
-
-
-   registerAccumulator_CPU= registerMBR_CPU.cell;
-   registerPC_CPU++;
-   break;
-
-
-  case INC_INST:
-   tempAcc=registerAccumulator_CPU;
-   registerAccumulator_CPU += operand1;
-   Processor_CheckOverflow(tempAcc,operand1);
-   registerPC_CPU++;
-   break;
-
-
-  case HALT_INST:
-
-
-   if(Processor_PSW_BitState(EXECUTION_MODE_BIT)){
-    Processor_ActivatePSW_Bit(POWEROFF_BIT);
-   }
-   else
-   {
-    Processor_RaiseInterrupt(EXCEPTION_BIT);
-   }
-
-   break;
-
-
-  case OS_INST:
-
-
-
-
-   if(Processor_PSW_BitState(EXECUTION_MODE_BIT)){
-
-
-    ComputerSystem_DebugMessage(69, 'h',InstructionNames[operationCode],operand1,operand2,registerPC_CPU,registerAccumulator_CPU,registerPSW_CPU,Processor_ShowPSW());
-
-    OperatingSystem_InterruptLogic(operand1);
-    registerPC_CPU++;
-
-    Processor_UpdatePSW();
-   }
-   else
-   {
-    Processor_RaiseInterrupt(EXCEPTION_BIT);
-   }
-
-
-   return;
-
-
-  case IRET_INST:
-
-
-   if(Processor_PSW_BitState(EXECUTION_MODE_BIT)){
-    registerPC_CPU=Processor_CopyFromSystemStack(300 -1);
-    registerPSW_CPU=Processor_CopyFromSystemStack(300 -2);
-
-
-    registerAccumulator_CPU=Processor_CopyFromSystemStack(300 -3);
-
-
-   }
-   else{
-    Processor_RaiseInterrupt(EXCEPTION_BIT);
-   }
-   break;
-
-
-
-  default :
-   registerPC_CPU++;
-   break;
+ default:
+  registerPC_CPU++;
+  break;
  }
 
 
@@ -1593,54 +1595,54 @@ void Processor_DecodeAndExecuteInstruction() {
 
 
 
-
- ComputerSystem_DebugMessage(69, 'h', InstructionNames[operationCode],operand1,operand2,registerPC_CPU,registerAccumulator_CPU,registerPSW_CPU,Processor_ShowPSW());
+ ComputerSystem_DebugMessage(69, 'h', InstructionNames[operationCode], operand1, operand2, registerPC_CPU, registerAccumulator_CPU, registerPSW_CPU, Processor_ShowPSW());
 }
 
 
-
-void Processor_ManageInterrupts() {
+void Processor_ManageInterrupts()
+{
 
  int i;
 
-  for (i=0;i<10;i++)
+ for (i = 0; i < 10; i++)
 
-   if (Processor_GetInterruptLineStatus(i)) {
+  if (Processor_GetInterruptLineStatus(i))
+  {
 
-    Processor_ACKInterrupt(i);
+   Processor_ACKInterrupt(i);
 
-    Processor_CopyInSystemStack(300 -1, registerPC_CPU);
-    Processor_CopyInSystemStack(300 -2, registerPSW_CPU);
+   Processor_CopyInSystemStack(300 - 1, registerPC_CPU);
+   Processor_CopyInSystemStack(300 - 2, registerPSW_CPU);
 
+   Processor_CopyInSystemStack(300 - 3, registerAccumulator_CPU);
 
-    Processor_CopyInSystemStack(300 -3, registerAccumulator_CPU);
-
-
-    Processor_ActivatePSW_Bit(EXECUTION_MODE_BIT);
-
-
-    Processor_ActivatePSW_Bit(INTERRUPT_MASKED_BIT);
+   Processor_ActivatePSW_Bit(EXECUTION_MODE_BIT);
 
 
-    registerPC_CPU=interruptVectorTable[i];
-    break;
-   }
+
+   Processor_ActivatePSW_Bit(INTERRUPT_MASKED_BIT);
+
+
+
+   registerPC_CPU = interruptVectorTable[i];
+   break;
+  }
 }
 
-char * Processor_ShowPSW(){
- strcpy(pswmask,"----------------");
- int tam=strlen(pswmask)-1;
+char *Processor_ShowPSW()
+{
+ strcpy(pswmask, "----------------");
+ int tam = strlen(pswmask) - 1;
  if (Processor_PSW_BitState(EXECUTION_MODE_BIT))
-  pswmask[tam-EXECUTION_MODE_BIT]='X';
+  pswmask[tam - EXECUTION_MODE_BIT] = 'X';
  if (Processor_PSW_BitState(OVERFLOW_BIT))
-  pswmask[tam-OVERFLOW_BIT]='F';
+  pswmask[tam - OVERFLOW_BIT] = 'F';
  if (Processor_PSW_BitState(NEGATIVE_BIT))
-  pswmask[tam-NEGATIVE_BIT]='N';
+  pswmask[tam - NEGATIVE_BIT] = 'N';
  if (Processor_PSW_BitState(ZERO_BIT))
-  pswmask[tam-ZERO_BIT]='Z';
+  pswmask[tam - ZERO_BIT] = 'Z';
  if (Processor_PSW_BitState(POWEROFF_BIT))
-  pswmask[tam-POWEROFF_BIT]='S';
-
+  pswmask[tam - POWEROFF_BIT] = 'S';
  if (Processor_PSW_BitState(INTERRUPT_MASKED_BIT))
   pswmask[tam-INTERRUPT_MASKED_BIT]='M';
  return pswmask;

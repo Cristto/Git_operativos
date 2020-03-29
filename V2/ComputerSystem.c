@@ -49,6 +49,12 @@ void ComputerSystem_PowerOn(int argc, char *argv[], int paramIndex) {
 
 // Powers off the CS (the C program ends)
 void ComputerSystem_PowerOff() {
+
+	// V2 Ej 1
+	//ex-n
+	ComputerSystem_ShowTime(SHUTDOWN);
+	//end ex-n
+
 	// Show message in red colour: "END of the simulation\n" 
 	ComputerSystem_DebugMessage(99,SHUTDOWN,"END of the simulation\n"); 
 	exit(0);
@@ -60,6 +66,11 @@ void ComputerSystem_PowerOff() {
 //V0 Ej1
 void ComputerSystem_PrintProgramList() {
 
+	// V2 Ej 1
+	//ex-n
+	ComputerSystem_ShowTime(INIT);
+	//end ex-n	
+
 	ComputerSystem_DebugMessage(101,INIT); 
 	int i;
 	//pos 0 reservada para el sipID que no es un programa
@@ -68,3 +79,9 @@ void ComputerSystem_PrintProgramList() {
 	}
 
 }
+// V2 Ej 1
+//ex-n
+void ComputerSystem_ShowTime(char section) {
+	ComputerSystem_DebugMessage(Processor_PSW_BitState(EXECUTION_MODE_BIT)?95:94,section,Clock_GetTime());
+}
+// end ex-n

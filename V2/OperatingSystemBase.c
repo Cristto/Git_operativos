@@ -14,7 +14,6 @@ int OperatingSystem_lineBeginsWithANumber(char *);
 void OperatingSystem_PrintSleepingProcessQueue();
 void OperatingSystem_PrintExecutingProcessInformation();
 void OperatingSystem_PrintProcessTableAssociation();
-int Clock_GetTime();
 
 extern int initialPID;
 

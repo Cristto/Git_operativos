@@ -3,10 +3,14 @@
 
 #include "Simulator.h"
 #include "ComputerSystemBase.h"
+#include "Clock.h"  // V2 Ej 1
 
 // Functions prototypes
 void ComputerSystem_PowerOn(int argc, char *argv[], int);
 void ComputerSystem_PowerOff();
+// V2 Ej 1
+// lo pongo aqui para que no me de warning cuando la lea en Processor.c
+void ComputerSystem_ShowTime(char section);
 
 // Sections in which we divide our simulator in terms of
 // debugging messages that show its internal working details

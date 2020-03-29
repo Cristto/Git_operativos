@@ -13,12 +13,12 @@
 // so we can use 60 positions for OS code and the system stack
 #define MAINMEMORYSECTIONSIZE (MAINMEMORYSIZE / (PROCESSTABLEMAXSIZE+1))
 
-#define SLEEPINGQUEUE
-
 #define NOFREEENTRY -3
 #define TOOBIGPROCESS -4
 
 #define NOPROCESS -1
+
+#define SLEEPINGQUEUE
 
 //nuevo V1 Ej 11.a
 #define NUMBEROFQUEUES 2
@@ -31,7 +31,7 @@ enum ProgramTypes { USERPROGRAM, DAEMONPROGRAM };
 enum ProcessStates { NEW, READY, EXECUTING, BLOCKED, EXIT};
 
 // Enumerated type containing the list of system calls and their numeric identifiers
-enum SystemCallIdentifiers { SYSCALL_END=3, SYSCALL_YIELD=4, SYSCALL_PRINTEXECPID=5, SYSCALL_SLEEP=7};
+enum SystemCallIdentifiers { SYSCALL_END=3, SYSCALL_YIELD=4, SYSCALL_PRINTEXECPID=5};
 
 // A PCB contains all of the information about a process that is needed by the OS
 typedef struct {
@@ -40,11 +40,11 @@ typedef struct {
 	int processSize;
 	int state;
 	int priority;
+	int whenToWakeUp; // Exercise 5-a of V2
 	int queueID;  // id de la cola a la que pertenezca el proceso. V1 Ej 11.a
 	int copyOfPCRegister;
 	unsigned int copyOfPSWRegister;
 	int copyOfAcummRegister; // V1 Ej 13
-	int whenToWakeUp; // Exercise 5-a of V2
 	int programListIndex;  // este saca el ID del programa al que pertenece el proceso 
 } PCB;
 

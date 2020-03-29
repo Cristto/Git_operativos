@@ -77,15 +77,17 @@ void ComputerSystem_DebugMessage(int , char , ...);
 extern char defaultDebugLevel[]; 
 #line 12 "ComputerSystemBase.h"
 extern int intervalBetweenInterrupts; 
-#line 8 "ComputerSystem.h"
-void ComputerSystem_PowerOn(int argc, char *argv[], int ); 
 #line 9 "ComputerSystem.h"
+void ComputerSystem_PowerOn(int argc, char *argv[], int ); 
+#line 10 "ComputerSystem.h"
 void ComputerSystem_PowerOff(); 
+#line 13 "ComputerSystem.h"
+void ComputerSystem_ShowTime(char section); 
 # 6 "ComputerSystem.h" 2
-# 37 "ComputerSystem.h" 
+# 41 "ComputerSystem.h" 
 typedef struct ProgramData {char *executableName; unsigned int arrivalTime; unsigned int type; 
 }PROGRAMS_DATA; 
-#line 41 "ComputerSystem.h"
+#line 45 "ComputerSystem.h"
 extern  PROGRAMS_DATA *programList[20]; 
 # 5 "OperatingSystemBase.h" 2
 # 1 "OperatingSystem.h" 1
@@ -557,9 +559,9 @@ enum ProgramTypes {USERPROGRAM,DAEMONPROGRAM};
 #line 31 "OperatingSystem.h"
 enum ProcessStates {NEW,READY,EXECUTING,BLOCKED,EXIT}; 
 #line 34 "OperatingSystem.h"
-enum SystemCallIdentifiers {SYSCALL_END=3,SYSCALL_YIELD=4,SYSCALL_PRINTEXECPID=5,SYSCALL_SLEEP=7}; 
+enum SystemCallIdentifiers {SYSCALL_END=3,SYSCALL_YIELD=4,SYSCALL_PRINTEXECPID=5}; 
 #line 49 "OperatingSystem.h"
-typedef struct {int busy; int initialPhysicalAddress; int processSize; int state; int priority; int queueID; int copyOfPCRegister; unsigned int copyOfPSWRegister; int copyOfAcummRegister; int whenToWakeUp; int programListIndex; 
+typedef struct {int busy; int initialPhysicalAddress; int processSize; int state; int priority; int whenToWakeUp; int queueID; int copyOfPCRegister; unsigned int copyOfPSWRegister; int copyOfAcummRegister; int programListIndex; 
 }PCB; 
 #line 53 "OperatingSystem.h"
 extern  PCB processTable[]; 
