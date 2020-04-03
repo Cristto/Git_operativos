@@ -1,0 +1,8 @@
+40 
+40 
+ADD 6 -3 
+TRAP 7 
+TRAP 4 
+TRAP 7 
+TRAP 4 
+TRAP 3 
