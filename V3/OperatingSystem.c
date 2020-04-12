@@ -29,7 +29,6 @@ void OperatingSystem_HandleSystemCall();
 void OperatingSystem_PrintReadyToRunQueue();
 void OperatingSystem_HandleClockInterrupt();
 
-
 //variables nuevas
 // V1 Ej 10.a
 char *statesNames[5] = {"NEW", "READY", "EXECUTING", "BLOCKED", "EXIT"};
@@ -75,7 +74,7 @@ int numberOfNotTerminatedUserProcesses = 0;
 // Initial set of tasks of the OS
 void OperatingSystem_Initialize(int daemonsIndex)
 {
-
+	int numberOfSuccessfullyCreatedProcesses;
 	int i, selectedProcess;
 	FILE *programFile; // For load Operating System Code
 
@@ -103,12 +102,18 @@ void OperatingSystem_Initialize(int daemonsIndex)
 	//end ex-n
 
 	// Create all user processes from the information given in the command line
-	OperatingSystem_LongTermScheduler();
-	// V1 Ej 15
-	if (numberOfNotTerminatedUserProcesses == 0)
+	// V3 Ej 4.a
+	//ex-n
+	numberOfSuccessfullyCreatedProcesses = OperatingSystem_LongTermScheduler();
+	if (numberOfSuccessfullyCreatedProcesses <= 1 && OperatingSystem_IsThereANewProgram() == NO)
 	{
 		OperatingSystem_ReadyToShutdown();
 	}
+	// V1 Ej 15
+	/*if (numberOfNotTerminatedUserProcesses == 0)
+	{
+		OperatingSystem_ReadyToShutdown();
+	}*/
 
 	if (strcmp(programList[processTable[sipID].programListIndex]->executableName, "SystemIdleProcess"))
 	{
@@ -163,9 +168,9 @@ int OperatingSystem_LongTermScheduler()
 	//for (i = 0; programList[i] != NULL && i < PROGRAMSMAXNUMBER; i++)
 	// V3 Ej 2
 	//ex-n
-	while(OperatingSystem_IsThereANewProgram()==YES)
+	while (OperatingSystem_IsThereANewProgram() == YES)
 	{
-		i=Heap_poll(arrivalTimeQueue, QUEUE_ARRIVAL, &numberOfProgramsInArrivalTimeQueue);
+		i = Heap_poll(arrivalTimeQueue, QUEUE_ARRIVAL, &numberOfProgramsInArrivalTimeQueue);
 		//end ex-n
 		PID = OperatingSystem_CreateProcess(i);
 		//V0 Ej 4.b
@@ -516,8 +521,11 @@ void OperatingSystem_TerminateProcess()
 			ComputerSystem_DebugMessage(99, SHUTDOWN, "The system will shut down now...\n");
 			return; // Don't dispatch any process
 		}
-		// Simulation must finish, telling sipID to finish
-		OperatingSystem_ReadyToShutdown();
+		if (OperatingSystem_IsThereANewProgram() == NO)
+		{ // V3 Ej 4.c
+			// Simulation must finish, telling sipID to finish
+			OperatingSystem_ReadyToShutdown();
+		}
 	}
 	// Select the next process to execute (sipID if no more user processes)
 	selectedProcess = OperatingSystem_ShortTermScheduler();
@@ -697,6 +705,9 @@ void OperatingSystem_HandleClockInterrupt()
 
 	// V2 Ej 6.c
 	//ex-n
+
+	// V3 Ej 3.a
+	//ex-n
 	//llamamos para que el planificador a largo plazo introduzca otro proceso con el que pueda compararse
 	//para saber si tiene mas prioridad que el que se esta ejecutando
 	int proceso_nuevo;
@@ -704,6 +715,14 @@ void OperatingSystem_HandleClockInterrupt()
 	if (proceso_nuevo > 0 && proceso_nuevo != 0)
 	{
 		OperatingSystem_MoveToTheREADYState(proceso_nuevo);
+	}
+	//end ex-n
+
+	// V3 Ej 4.b
+	//ex-n
+	if (OperatingSystem_IsThereANewProgram() == NO && numberOfNotTerminatedUserProcesses == 0)
+	{
+		OperatingSystem_ReadyToShutdown();
 	}
 
 	int pid_proceso_ready;
