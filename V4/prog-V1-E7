@@ -1,0 +1,15 @@
+10 //con 30 lo pilla
+2
+ADD 10 0
+WRITE 100
+INC 1
+INC 1
+INC 1
+INC 1
+INC 1
+INC 1
+INC 1
+INC 1
+INC 1
+HALT
+

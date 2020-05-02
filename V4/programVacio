@@ -1,0 +1,9 @@
+40 
+40 
+ADD 4 5
+ADD 4 5
+TRAP 777
+OS 
+HALT 
+
+
