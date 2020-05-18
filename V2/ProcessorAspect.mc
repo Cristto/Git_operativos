@@ -1342,6 +1342,7 @@ void Processor_InitializeInterruptVectorTable(int interruptVectorInitialAddress)
 
  interruptVectorTable[SYSCALL_BIT] = interruptVectorInitialAddress;
  interruptVectorTable[EXCEPTION_BIT] = interruptVectorInitialAddress + 2;
+ interruptVectorTable[CLOCKINT_BIT] = interruptVectorInitialAddress + 4;
 }
 
 
@@ -1564,6 +1565,7 @@ void Processor_DecodeAndExecuteInstruction()
   else
   {
    Processor_RaiseInterrupt(EXCEPTION_BIT);
+
   }
 
   return;
@@ -1577,6 +1579,7 @@ void Processor_DecodeAndExecuteInstruction()
    registerPSW_CPU = Processor_CopyFromSystemStack(300 - 2);
 
    registerAccumulator_CPU = Processor_CopyFromSystemStack(300 - 3);
+
   }
   else
   {

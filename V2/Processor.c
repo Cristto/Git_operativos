@@ -42,6 +42,7 @@ void Processor_InitializeInterruptVectorTable(int interruptVectorInitialAddress)
 
 	interruptVectorTable[SYSCALL_BIT] = interruptVectorInitialAddress;		 // SYSCALL_BIT=2
 	interruptVectorTable[EXCEPTION_BIT] = interruptVectorInitialAddress + 2; // EXCEPTION_BIT=6
+	interruptVectorTable[CLOCKINT_BIT] = interruptVectorInitialAddress + 4; //cambio
 }
 
 // This is the instruction cycle loop (fetch, decoding, execution, etc.).
@@ -264,6 +265,7 @@ void Processor_DecodeAndExecuteInstruction()
 		else
 		{
 			Processor_RaiseInterrupt(EXCEPTION_BIT);
+						
 		}
 
 		return; // Note: message show before... for operating system messages after...
@@ -277,6 +279,7 @@ void Processor_DecodeAndExecuteInstruction()
 			registerPSW_CPU = Processor_CopyFromSystemStack(MAINMEMORYSIZE - 2);
 			// V1 Ej 13
 			registerAccumulator_CPU = Processor_CopyFromSystemStack(MAINMEMORYSIZE - 3);
+			
 		}
 		else
 		{

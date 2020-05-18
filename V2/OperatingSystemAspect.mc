@@ -2872,6 +2872,8 @@ void OperatingSystem_Initialize(int daemonsIndex)
 
 
  Processor_SetPC(OS_address_base);
+
+ numberOfClockInterrupts = 0;
 }
 
 
@@ -2903,9 +2905,9 @@ int OperatingSystem_LongTermScheduler()
   numberOfSuccessfullyCreatedProcesses = 0;
 
  for (i = 0; programList[i] != 
-# 156 "OperatingSystem.c" 3 4
+# 158 "OperatingSystem.c" 3 4
                               ((void *)0) 
-# 156 "OperatingSystem.c"
+# 158 "OperatingSystem.c"
                                    && i < 20; i++)
  {
   PID = OperatingSystem_CreateProcess(i);
@@ -2952,7 +2954,8 @@ int OperatingSystem_LongTermScheduler()
 
 
 
- if(numberOfSuccessfullyCreatedProcesses>=1){
+ if (numberOfSuccessfullyCreatedProcesses >= 1)
+ {
   OperatingSystem_PrintStatus();
  }
 
@@ -3036,17 +3039,6 @@ void OperatingSystem_PCBInitialization(int PID, int initialPhysicalAddress, int 
  processTable[PID].processSize = processSize;
  processTable[PID].state = NEW;
 
-
-
- OperatingSystem_ShowTime('p');
-
-
-
- ComputerSystem_DebugMessage(111, 'p',
-        PID,
-        programList[processTable[PID].programListIndex]->executableName,
-        statesNames[processTable[PID].state]);
-
  processTable[PID].priority = priority;
  processTable[PID].programListIndex = processPLIndex;
 
@@ -3067,6 +3059,17 @@ void OperatingSystem_PCBInitialization(int PID, int initialPhysicalAddress, int 
 
   processTable[PID].queueID = USERPROCESSQUEUE;
  }
+
+
+
+ OperatingSystem_ShowTime('p');
+
+
+
+ ComputerSystem_DebugMessage(111, 'p',
+        PID,
+        programList[processTable[PID].programListIndex]->executableName,
+        statesNames[processTable[PID].state]);
 }
 
 
@@ -3355,14 +3358,20 @@ void OperatingSystem_HandleSystemCall()
 
 
 
-  OperatingSystem_SaveContext(executingProcessID);
+
+
   anterior = processTable[executingProcessID].state;
-  wakeUp = abs(Processor_GetAccumulator()) + numberOfClockInterrupts + 1;
-  processTable[executingProcessID].whenToWakeUp = wakeUp;
+
 
   if (Heap_add(executingProcessID, sleepingProcessesQueue,
       0, &numberOfSleepingProcesses, 4) >= 0)
   {
+
+   OperatingSystem_SaveContext(executingProcessID);
+
+   wakeUp = abs(Processor_GetAccumulator()) + numberOfClockInterrupts + 1;
+
+   processTable[executingProcessID].whenToWakeUp = wakeUp;
    processTable[executingProcessID].state = BLOCKED;
    OperatingSystem_ShowTime('p');
    ComputerSystem_DebugMessage(110, 'p',
@@ -3421,60 +3430,91 @@ void OperatingSystem_HandleClockInterrupt()
 
 
 
- int i;
- int aux_pid;
 
- for (i = numberOfSleepingProcesses - 1; i >= 0; i--)
+ int aux_pid;
+ int contador = 0;
+
+ aux_pid = Heap_getFirst(sleepingProcessesQueue, numberOfSleepingProcesses);
+
+
+
+ while (processTable[aux_pid].whenToWakeUp == numberOfClockInterrupts)
  {
-  aux_pid = sleepingProcessesQueue[i].info;
-  if (processTable[aux_pid].whenToWakeUp == numberOfSleepingProcesses)
+
+  contador++;
+
+  aux_pid=Heap_poll(sleepingProcessesQueue, 0, &numberOfSleepingProcesses);
+  OperatingSystem_MoveToTheREADYState(aux_pid);
+  aux_pid = Heap_getFirst(sleepingProcessesQueue, numberOfSleepingProcesses);
+ }
+# 707 "OperatingSystem.c"
+ int pid_proceso_ready;
+ int prioridad_proceso_ready;
+ int i;
+
+
+
+
+ if (contador > 0)
+ {
+  if (numberOfReadyToRunProcesses[USERPROCESSQUEUE] > 0)
   {
-   Heap_poll(sleepingProcessesQueue, 0, &numberOfSleepingProcesses);
-   OperatingSystem_MoveToTheREADYState(aux_pid);
-   OperatingSystem_PrintStatus();
+   for (i = 0; i < numberOfReadyToRunProcesses[USERPROCESSQUEUE]; i++)
+   {
+    pid_proceso_ready = readyToRunQueue[USERPROCESSQUEUE][i].info;
+    prioridad_proceso_ready = processTable[pid_proceso_ready].priority;
+
+    if (prioridad_proceso_ready < processTable[executingProcessID].priority)
+    {
+
+     pid_proceso_ready = Heap_poll(readyToRunQueue[USERPROCESSQUEUE], 1,
+         &numberOfReadyToRunProcesses[USERPROCESSQUEUE]);
+
+     OperatingSystem_ShowTime('s');
+     ComputerSystem_DebugMessage(121, 's',
+            executingProcessID,
+            programList[processTable[executingProcessID].programListIndex]->executableName,
+            pid_proceso_ready,
+            programList[processTable[pid_proceso_ready].programListIndex]->executableName);
+     OperatingSystem_PreemptRunningProcess();
+     OperatingSystem_Dispatch(pid_proceso_ready);
+     OperatingSystem_PrintStatus();
+    }
+   }
+  }
+  else
+   if (numberOfReadyToRunProcesses[DAEMONSQUEUE] > 0)
+  {
+   for (i = 0; i < numberOfReadyToRunProcesses[DAEMONSQUEUE]; i++)
+   {
+    pid_proceso_ready = readyToRunQueue[DAEMONSQUEUE][i].info;
+    prioridad_proceso_ready = processTable[pid_proceso_ready].priority;
+
+    if (prioridad_proceso_ready < processTable[executingProcessID].priority)
+    {
+
+     pid_proceso_ready = Heap_poll(readyToRunQueue[DAEMONSQUEUE], 1,
+         &numberOfReadyToRunProcesses[DAEMONSQUEUE]);
+
+     OperatingSystem_ShowTime('s');
+     ComputerSystem_DebugMessage(121, 's',
+            executingProcessID,
+            programList[processTable[executingProcessID].programListIndex]->executableName,
+            pid_proceso_ready,
+            programList[processTable[pid_proceso_ready].programListIndex]->executableName);
+     OperatingSystem_PreemptRunningProcess();
+     OperatingSystem_Dispatch(pid_proceso_ready);
+     OperatingSystem_PrintStatus();
+    }
+   }
   }
  }
 
-
-
-
-
- int proceso_nuevo;
- proceso_nuevo = OperatingSystem_LongTermScheduler();
- if (proceso_nuevo > 0 && proceso_nuevo != 0)
- {
-  OperatingSystem_MoveToTheREADYState(proceso_nuevo);
+ if(contador == 0){
+  OperatingSystem_ReadyToShutdown();
  }
-
- int pid_proceso_ready;
-
- if (numberOfNotTerminatedUserProcesses > 0)
- {
-  pid_proceso_ready = Heap_getFirst(readyToRunQueue[USERPROCESSQUEUE], numberOfReadyToRunProcesses[USERPROCESSQUEUE]);
- }
- else
- {
-  pid_proceso_ready = Heap_getFirst(readyToRunQueue[DAEMONSQUEUE], numberOfReadyToRunProcesses[DAEMONSQUEUE]);
- }
-
- int prioridad_proceso_ready;
- prioridad_proceso_ready = processTable[pid_proceso_ready].priority;
- if (prioridad_proceso_ready < processTable[executingProcessID].priority)
- {
-  pid_proceso_ready = OperatingSystem_ShortTermScheduler();
-  OperatingSystem_ShowTime('s');
-  ComputerSystem_DebugMessage(121, 's',
-         executingProcessID,
-         programList[executingProcessID]->executableName,
-         pid_proceso_ready,
-         programList[pid_proceso_ready]->executableName);
-  OperatingSystem_PreemptRunningProcess();
-  OperatingSystem_Dispatch(pid_proceso_ready);
-  OperatingSystem_PrintStatus();
- }
-
-
 }
+
 
 
 
@@ -3486,15 +3526,34 @@ void OperatingSystem_PrintReadyToRunQueue()
 
 
  ComputerSystem_DebugMessage(106, 's', "Ready-to-run processes queues:\n");
+ ComputerSystem_DebugMessage(112, 's');
  int i, aux_pid, prioridad;
  if (numberOfReadyToRunProcesses[USERPROCESSQUEUE] > 0)
  {
-  ComputerSystem_DebugMessage(112, 's');
   for (i = 0; i < numberOfReadyToRunProcesses[USERPROCESSQUEUE]; i++)
   {
    aux_pid = readyToRunQueue[USERPROCESSQUEUE][i].info;
    prioridad = processTable[aux_pid].priority;
    if (i == numberOfReadyToRunProcesses[USERPROCESSQUEUE] - 1)
+   {
+    ComputerSystem_DebugMessage(114, 's', aux_pid, prioridad);
+   }
+   else
+   {
+    ComputerSystem_DebugMessage(114, 's', aux_pid, prioridad);
+    printf(", ");
+   }
+  }
+ }
+
+ ComputerSystem_DebugMessage(113, 's');
+ if (numberOfReadyToRunProcesses[DAEMONSQUEUE] > 0)
+ {
+  for (i = 0; i < numberOfReadyToRunProcesses[DAEMONSQUEUE]; i++)
+  {
+   aux_pid = readyToRunQueue[DAEMONSQUEUE][i].info;
+   prioridad = processTable[aux_pid].priority;
+   if (i == numberOfReadyToRunProcesses[DAEMONSQUEUE] - 1)
    {
     ComputerSystem_DebugMessage(114, 's', aux_pid, prioridad);
     printf("\n");
@@ -3506,21 +3565,8 @@ void OperatingSystem_PrintReadyToRunQueue()
    }
   }
  }
-
- ComputerSystem_DebugMessage(113, 's');
- for (i = 0; i < numberOfReadyToRunProcesses[DAEMONSQUEUE]; i++)
+ else
  {
-  aux_pid = readyToRunQueue[DAEMONSQUEUE][i].info;
-  prioridad = processTable[aux_pid].priority;
-  if (i == numberOfReadyToRunProcesses[DAEMONSQUEUE] - 1)
-  {
-   ComputerSystem_DebugMessage(114, 's', aux_pid, prioridad);
-   printf("\n");
-  }
-  else
-  {
-   ComputerSystem_DebugMessage(114, 's', aux_pid, prioridad);
-   printf(", ");
-  }
+  printf("\n");
  }
 }

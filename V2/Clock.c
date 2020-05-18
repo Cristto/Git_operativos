@@ -11,7 +11,7 @@ void Clock_Update()
 
 	// V2 Ej 2.d
 	//ex-n
-	if ((tics > 0) && ((tics % intervalBetweenInterrupts) == 0))
+	if (tics > 0 && tics % intervalBetweenInterrupts == 0)
 	{
 		Processor_RaiseInterrupt(CLOCKINT_BIT);
 	}
