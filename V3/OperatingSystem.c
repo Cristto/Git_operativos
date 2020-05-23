@@ -74,7 +74,7 @@ int numberOfNotTerminatedUserProcesses = 0;
 // Initial set of tasks of the OS
 void OperatingSystem_Initialize(int daemonsIndex)
 {
-	int numberOfSuccessfullyCreatedProcesses;
+
 	int i, selectedProcess;
 	FILE *programFile; // For load Operating System Code
 
@@ -104,11 +104,12 @@ void OperatingSystem_Initialize(int daemonsIndex)
 	// Create all user processes from the information given in the command line
 	// V3 Ej 4.a
 	//ex-n
-	numberOfSuccessfullyCreatedProcesses = OperatingSystem_LongTermScheduler();
-	if (numberOfSuccessfullyCreatedProcesses <= 1 && OperatingSystem_IsThereANewProgram() == NO)
+	OperatingSystem_LongTermScheduler();
+	if (OperatingSystem_IsThereANewProgram() == EMPTYQUEUE)
 	{
 		OperatingSystem_ReadyToShutdown();
 	}
+
 	// V1 Ej 15
 	/*if (numberOfNotTerminatedUserProcesses == 0)
 	{
@@ -507,12 +508,13 @@ void OperatingSystem_TerminateProcess()
 		numberOfNotTerminatedUserProcesses--;
 
 	// V1 Ej 14 mirarlo
-	if (numberOfNotTerminatedUserProcesses == 0)
+	if (numberOfNotTerminatedUserProcesses == 0 && OperatingSystem_IsThereANewProgram() == EMPTYQUEUE)
 	{
 		if (executingProcessID == sipID)
 		{ // si el que se esta ejecutando es el daemmon
 			// finishing sipID, change PC to address of OS HALT instruction
-			Processor_CopyInSystemStack(MAINMEMORYSIZE - 1, OS_address_base + 1);
+			//Processor_CopyInSystemStack(MAINMEMORYSIZE - 1, OS_address_base + 1);
+			OperatingSystem_TerminatingSIP();
 			// V2 Ej 1
 			//ex-n
 			OperatingSystem_ShowTime(SHUTDOWN);
@@ -521,12 +523,10 @@ void OperatingSystem_TerminateProcess()
 			ComputerSystem_DebugMessage(99, SHUTDOWN, "The system will shut down now...\n");
 			return; // Don't dispatch any process
 		}
-		if (OperatingSystem_IsThereANewProgram() == NO)
-		{ // V3 Ej 4.c
-			// Simulation must finish, telling sipID to finish
-			OperatingSystem_ReadyToShutdown();
-		}
+		// Simulation must finish, telling sipID to finish
+		OperatingSystem_ReadyToShutdown();
 	}
+
 	// Select the next process to execute (sipID if no more user processes)
 	selectedProcess = OperatingSystem_ShortTermScheduler();
 
@@ -623,14 +623,20 @@ void OperatingSystem_HandleSystemCall()
 		//V2 Ej 5.d
 		//ex-n
 		////////move to the state blocked
-		OperatingSystem_SaveContext(executingProcessID);						// guardo algunos datos esenciales
-		anterior = processTable[executingProcessID].state;						// guardo el estado anterior
-		wakeUp = abs(Processor_GetAccumulator()) + numberOfClockInterrupts + 1; // calculo el campo del whenToWakeUp
-		processTable[executingProcessID].whenToWakeUp = wakeUp;					// lo introduzco en el campo del struct
+
+		// guardo el estado anterior
+		anterior = processTable[executingProcessID].state;
+
 		// Añado el proceso a la cola de dormidos
 		if (Heap_add(executingProcessID, sleepingProcessesQueue,
 					 QUEUE_WAKEUP, &numberOfSleepingProcesses, PROCESSTABLEMAXSIZE) >= 0)
 		{
+			// guardo algunos datos esenciales, el contexto
+			OperatingSystem_SaveContext(executingProcessID);
+			// calculo el campo del whenToWakeUp
+			wakeUp = abs(Processor_GetAccumulator()) + numberOfClockInterrupts + 1;
+
+			processTable[executingProcessID].whenToWakeUp = wakeUp;
 			processTable[executingProcessID].state = BLOCKED; // el estado pasa a bloqueado
 			OperatingSystem_ShowTime(SYSPROC);
 			ComputerSystem_DebugMessage(110, SYSPROC,
@@ -645,14 +651,16 @@ void OperatingSystem_HandleSystemCall()
 		pid_proceso_ready = OperatingSystem_ShortTermScheduler();
 		// se mete este proceso en el procesador
 		OperatingSystem_Dispatch(pid_proceso_ready);
-		break;
 		//end ex-n
 
 		// V2 Ej 5.e
 		//ex-n
 		OperatingSystem_PrintStatus();
 		//end ex-n
+		break;
+		
 	}
+	
 }
 
 //	Implement interrupt logic calling appropriate interrupt handle
@@ -689,70 +697,99 @@ void OperatingSystem_HandleClockInterrupt()
 
 	// V2 Ej 6.a y 6.b
 	//ex-n
-	int i;
+	//cogemos el primero de la cola de dormidos para comparar con el numero de interrupciones
 	int aux_pid;
+	int contador = 0;
+	int proceso_despierto;
 
-	for (i = numberOfSleepingProcesses - 1; i >= 0; i--)
+	aux_pid = Heap_getFirst(sleepingProcessesQueue, numberOfSleepingProcesses);
+
+	//Si el momento de levantarse es el mismo al numero de clock interrupts debera despertarse.
+	//El bucle parara cuando en el siguiente no se de ese caso.
+	while (processTable[aux_pid].whenToWakeUp == numberOfClockInterrupts)
 	{
-		aux_pid = sleepingProcessesQueue[i].info;
-		if (processTable[aux_pid].whenToWakeUp == numberOfSleepingProcesses)
-		{
-			Heap_poll(sleepingProcessesQueue, QUEUE_WAKEUP, &numberOfSleepingProcesses);
-			OperatingSystem_MoveToTheREADYState(aux_pid);
-			OperatingSystem_PrintStatus();
-		}
-	} //end ex-n
+		contador++;
+		//Sacamos el proceso de la cola de dormidos ya que ya no estaria bloqueado.
+		proceso_despierto = Heap_poll(sleepingProcessesQueue, QUEUE_WAKEUP, &numberOfSleepingProcesses);
+		OperatingSystem_MoveToTheREADYState(proceso_despierto);
+		aux_pid = Heap_getFirst(sleepingProcessesQueue, numberOfSleepingProcesses);
+	}
+	//end ex-n
+
+	int procesos_creados;
+	procesos_creados = OperatingSystem_LongTermScheduler(); //V3 Ej 3
+	// V3 4.b este abajo solo
+	//si procesos creados > 0 y contador > 0 el prinstatus
+	if (procesos_creados > 0 && contador > 0)
+	{
+		OperatingSystem_PrintStatus();
+	}
 
 	// V2 Ej 6.c
 	//ex-n
-
-	// V3 Ej 3.a
-	//ex-n
-	//llamamos para que el planificador a largo plazo introduzca otro proceso con el que pueda compararse
-	//para saber si tiene mas prioridad que el que se esta ejecutando
-	int proceso_nuevo;
-	proceso_nuevo = OperatingSystem_LongTermScheduler();
-	if (proceso_nuevo > 0 && proceso_nuevo != 0)
+	int pid_proceso_ready;
+	int prioridad_proceso_ready;
+	int i;
+		
+	if (contador > 0 || procesos_creados > 0)
 	{
-		OperatingSystem_MoveToTheREADYState(proceso_nuevo);
-	}
-	//end ex-n
+		if (numberOfReadyToRunProcesses[USERPROCESSQUEUE] > 0)
+		{
+			for (i = 0; i < numberOfReadyToRunProcesses[USERPROCESSQUEUE]; i++)
+			{
+				pid_proceso_ready = readyToRunQueue[USERPROCESSQUEUE][i].info;
+				prioridad_proceso_ready = processTable[pid_proceso_ready].priority;
 
-	// V3 Ej 4.b
-	//ex-n
-	if (OperatingSystem_IsThereANewProgram() == NO && numberOfNotTerminatedUserProcesses == 0)
+				if (prioridad_proceso_ready < processTable[executingProcessID].priority)
+				{
+
+					pid_proceso_ready = Heap_poll(readyToRunQueue[USERPROCESSQUEUE], QUEUE_PRIORITY,
+												  &numberOfReadyToRunProcesses[USERPROCESSQUEUE]);
+
+					OperatingSystem_ShowTime(SHORTTERMSCHEDULE);
+					ComputerSystem_DebugMessage(121, SHORTTERMSCHEDULE,
+												executingProcessID,
+												programList[processTable[executingProcessID].programListIndex]->executableName,
+												pid_proceso_ready,
+												programList[processTable[pid_proceso_ready].programListIndex]->executableName);
+					OperatingSystem_PreemptRunningProcess();
+					OperatingSystem_Dispatch(pid_proceso_ready);
+					//OperatingSystem_PrintStatus(); // V2 Ej 6.d
+				}
+			}
+		}
+		else if (numberOfReadyToRunProcesses[DAEMONSQUEUE] > 0)
+		{
+			for (i = 0; i < numberOfReadyToRunProcesses[DAEMONSQUEUE]; i++)
+			{
+				pid_proceso_ready = readyToRunQueue[DAEMONSQUEUE][i].info;
+				prioridad_proceso_ready = processTable[pid_proceso_ready].priority;
+
+				if (prioridad_proceso_ready < processTable[executingProcessID].priority)
+				{
+
+					pid_proceso_ready = Heap_poll(readyToRunQueue[DAEMONSQUEUE], QUEUE_PRIORITY,
+												  &numberOfReadyToRunProcesses[DAEMONSQUEUE]);
+
+					OperatingSystem_ShowTime(SHORTTERMSCHEDULE);
+					ComputerSystem_DebugMessage(121, SHORTTERMSCHEDULE,
+												executingProcessID,
+												programList[processTable[executingProcessID].programListIndex]->executableName,
+												pid_proceso_ready,
+												programList[processTable[pid_proceso_ready].programListIndex]->executableName);
+					OperatingSystem_PreemptRunningProcess();
+					OperatingSystem_Dispatch(pid_proceso_ready);
+					//OperatingSystem_PrintStatus(); // V2 Ej 6.d
+				}
+			}
+		}
+	}
+	
+
+	if (OperatingSystem_IsThereANewProgram() == EMPTYQUEUE)
 	{
 		OperatingSystem_ReadyToShutdown();
 	}
-
-	int pid_proceso_ready;
-
-	if (numberOfNotTerminatedUserProcesses > 0)
-	{
-		pid_proceso_ready = Heap_getFirst(readyToRunQueue[USERPROCESSQUEUE], numberOfReadyToRunProcesses[USERPROCESSQUEUE]);
-	}
-	else
-	{
-		pid_proceso_ready = Heap_getFirst(readyToRunQueue[DAEMONSQUEUE], numberOfReadyToRunProcesses[DAEMONSQUEUE]);
-	}
-
-	int prioridad_proceso_ready;
-	prioridad_proceso_ready = processTable[pid_proceso_ready].priority;
-	if (prioridad_proceso_ready < processTable[executingProcessID].priority)
-	{
-		pid_proceso_ready = OperatingSystem_ShortTermScheduler();
-		OperatingSystem_ShowTime(SHORTTERMSCHEDULE);
-		ComputerSystem_DebugMessage(121, SHORTTERMSCHEDULE,
-									executingProcessID,
-									programList[executingProcessID]->executableName,
-									pid_proceso_ready,
-									programList[pid_proceso_ready]->executableName);
-		OperatingSystem_PreemptRunningProcess();
-		OperatingSystem_Dispatch(pid_proceso_ready);
-		OperatingSystem_PrintStatus(); // V2 Ej 6.d
-	}
-
-	//end ex-n
 }
 
 // V1 Ej 11.b
@@ -765,10 +802,10 @@ void OperatingSystem_PrintReadyToRunQueue()
 	//end ex-n
 
 	ComputerSystem_DebugMessage(106, SHORTTERMSCHEDULE, "Ready-to-run processes queues:\n");
+	ComputerSystem_DebugMessage(112, SHORTTERMSCHEDULE);
 	int i, aux_pid, prioridad;
 	if (numberOfReadyToRunProcesses[USERPROCESSQUEUE] > 0)
 	{
-		ComputerSystem_DebugMessage(112, SHORTTERMSCHEDULE);
 		for (i = 0; i < numberOfReadyToRunProcesses[USERPROCESSQUEUE]; i++)
 		{
 			aux_pid = readyToRunQueue[USERPROCESSQUEUE][i].info;
@@ -776,7 +813,6 @@ void OperatingSystem_PrintReadyToRunQueue()
 			if (i == numberOfReadyToRunProcesses[USERPROCESSQUEUE] - 1)
 			{
 				ComputerSystem_DebugMessage(114, SHORTTERMSCHEDULE, aux_pid, prioridad);
-				printf("\n");
 			}
 			else
 			{
@@ -787,19 +823,26 @@ void OperatingSystem_PrintReadyToRunQueue()
 	}
 
 	ComputerSystem_DebugMessage(113, SHORTTERMSCHEDULE);
-	for (i = 0; i < numberOfReadyToRunProcesses[DAEMONSQUEUE]; i++)
+	if (numberOfReadyToRunProcesses[USERPROCESSQUEUE] == 0)
 	{
-		aux_pid = readyToRunQueue[DAEMONSQUEUE][i].info;
-		prioridad = processTable[aux_pid].priority;
-		if (i == numberOfReadyToRunProcesses[DAEMONSQUEUE] - 1)
+		printf("\n");
+	}
+	else if (numberOfReadyToRunProcesses[USERPROCESSQUEUE] > 0)
+	{
+		for (i = 0; i < numberOfReadyToRunProcesses[DAEMONSQUEUE]; i++)
 		{
-			ComputerSystem_DebugMessage(114, SHORTTERMSCHEDULE, aux_pid, prioridad);
-			printf("\n");
-		}
-		else
-		{
-			ComputerSystem_DebugMessage(114, SHORTTERMSCHEDULE, aux_pid, prioridad);
-			printf(", ");
+			aux_pid = readyToRunQueue[DAEMONSQUEUE][i].info;
+			prioridad = processTable[aux_pid].priority;
+			if (i == numberOfReadyToRunProcesses[DAEMONSQUEUE] - 1)
+			{
+				ComputerSystem_DebugMessage(114, SHORTTERMSCHEDULE, aux_pid, prioridad);
+				printf("\n");
+			}
+			else
+			{
+				ComputerSystem_DebugMessage(114, SHORTTERMSCHEDULE, aux_pid, prioridad);
+				printf(", ");
+			}
 		}
 	}
 }

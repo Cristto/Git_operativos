@@ -110,18 +110,16 @@ void OperatingSystem_Initialize(int daemonsIndex)
 
 	
 	// Create all user processes from the information given in the command line
-	// V3 Ej 4.a
-	//ex-n
+	
 	numberOfSuccessfullyCreatedProcesses = OperatingSystem_LongTermScheduler();
-	if (numberOfSuccessfullyCreatedProcesses <= 1 && OperatingSystem_IsThereANewProgram() == NO)
-	{
-		OperatingSystem_ReadyToShutdown();
-	}
+	
 	// V1 Ej 15
 	/*if (numberOfNotTerminatedUserProcesses == 0)
 	{
 		OperatingSystem_ReadyToShutdown();
 	}*/
+
+	
 
 	if (strcmp(programList[processTable[sipID].programListIndex]->executableName, "SystemIdleProcess"))
 	{
@@ -133,6 +131,14 @@ void OperatingSystem_Initialize(int daemonsIndex)
 		ComputerSystem_DebugMessage(99, SHUTDOWN, "FATAL ERROR: Missing SIP program!\n");
 		exit(1);
 	}
+
+	// V3 Ej 4.a
+	//ex-n
+	if (numberOfSuccessfullyCreatedProcesses ==0 && OperatingSystem_IsThereANewProgram() == EMPTYQUEUE)
+	{
+		OperatingSystem_ReadyToShutdown();
+	}
+	//end ex-n
 
 	// At least, one user process has been created
 	// Select the first process that is going to use the processor
@@ -663,6 +669,8 @@ void OperatingSystem_TerminateProcess()
 	// V1 Ej 14 mirarlo
 	if (numberOfNotTerminatedUserProcesses == 0)
 	{
+		
+
 		if (executingProcessID == sipID)
 		{ // si el que se esta ejecutando es el daemmon
 			// finishing sipID, change PC to address of OS HALT instruction
@@ -675,12 +683,19 @@ void OperatingSystem_TerminateProcess()
 			ComputerSystem_DebugMessage(99, SHUTDOWN, "The system will shut down now...\n");
 			return; // Don't dispatch any process
 		}
-		if (OperatingSystem_IsThereANewProgram() == NO)
+
+		// V3 Ej 4
+		//ex-n
+		if (OperatingSystem_IsThereANewProgram() == EMPTYQUEUE)
 		{ // V3 Ej 4.c
 			// Simulation must finish, telling sipID to finish
 			OperatingSystem_ReadyToShutdown();
 		}
+		//end ex-n
+		
 	}
+
+	
 	// Select the next process to execute (sipID if no more user processes)
 	selectedProcess = OperatingSystem_ShortTermScheduler();
 
@@ -869,8 +884,8 @@ void OperatingSystem_ReleaseMainMemory(int proceso){
 								partitionsTable[numero_de_particion].initAddress,
 								partitionsTable[numero_de_particion].size,
 								proceso,
-								programList[proceso]->executableName);
-								//programList[processTable[proceso].programListIndex]->executableName);
+								//programList[proceso]->executableName);
+								programList[processTable[proceso].programListIndex]->executableName);
 									
 								
 }
@@ -913,7 +928,7 @@ void OperatingSystem_HandleClockInterrupt()
 
 	// V3 Ej 4.b
 	//ex-n
-	if (OperatingSystem_IsThereANewProgram() == NO && numberOfNotTerminatedUserProcesses == 0)
+	if (OperatingSystem_IsThereANewProgram() == EMPTYQUEUE && numberOfNotTerminatedUserProcesses == 0)
 	{
 		OperatingSystem_ReadyToShutdown();
 	}

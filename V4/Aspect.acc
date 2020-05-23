@@ -1,150 +1,80 @@
-# 1 "Processor.c"
+# 1 "MyAspect.c"
 # 1 "<built-in>"
 # 1 "<command-line>"
 # 31 "<command-line>"
 # 1 "/usr/include/stdc-predef.h" 1 3 4
 # 32 "<command-line>" 2
-# 1 "Processor.c"
-# 1 "Processor.h" 1
-
-
-
-# 1 "MainMemory.h" 1
+# 1 "MyAspect.c"
+# 1 "Clock.h" 1
 
 
 
 
-
-# 1 "Simulator.h" 1
-# 7 "MainMemory.h" 2
-
-
-typedef int MEMORYCELL;
+void Clock_Update();
+int Clock_GetTime();
+# 2 "MyAspect.c" 2
+# 1 "Asserts.h" 1
 
 
 
-int MainMemory_GetMAR();
-void MainMemory_SetMAR(int);
-void MainMemory_GetMBR(MEMORYCELL *);
-void MainMemory_SetMBR(MEMORYCELL *);
-int MainMemory_GetCTRL();
-void MainMemory_SetCTRL(int);
-# 5 "Processor.h" 2
-# 1 "ProcessorBase.h" 1
 
 
 
-# 1 "Buses.h" 1
-
-
-
-enum BusConnection { MAINMEMORY, MMU, CPU, INPUTDEVICE, OUTPUTDEVICE };
-# 14 "Buses.h"
-typedef struct {
- int cell;
-} BUSDATACELL;
-
-
-int Buses_write_AddressBus_From_To(int, int);
-int Buses_write_DataBus_From_To(int, int);
-int Buses_write_ControlBus_From_To(int, int);
-# 5 "ProcessorBase.h" 2
-
-enum Instruction {
-NONEXISTING_INST,
-
-# 1 "Instructions.def" 1
-ADD_INST,
-SHIFT_INST,
-DIV_INST,
-TRAP_INST,
-NOP_INST,
-JUMP_INST,
-ZJUMP_INST,
-WRITE_INST,
-READ_INST,
-INC_INST,
-HALT_INST,
-OS_INST,
-IRET_INST,
-MEMADD_INST,
-# 10 "ProcessorBase.h" 2
-
-LAST_INST,
+enum assertList {
+ RMEM_OP=0
+,RMEM_O1=1
+,RMEM_O2=2
+,AMEM_OP=3
+,AMEM_O1=4
+,AMEM_O2=5
+,PC=6
+,ACC=7
+,IR_OP=8
+,IR_O1=9
+,IR_O2=10
+,PSW=11
+,MAR=12
+,MBR_OP=13
+,MBR_O1=14
+,MBR_O2=15
+,MMU_BS=16
+,MMU_LM=17
+,MMU_MAR=18
+,MMEM_MAR=19
+,MMBR_OP=20
+,MMBR_O1=21
+,MMBR_O2=22
+,XPID=23
+,RMEM=24
+,AMEM=25
+,MBR=26
+,MMBR=27
+,PCB_ST=28
+,PCB_PC=29
+,PCB_PR=30
 };
 
-void Processor_UpdatePSW();
-void Processor_CheckOverflow(int , int );
-
-void Processor_CopyInSystemStack(int, int);
-int Processor_CopyFromSystemStack(int);
-void Processor_RaiseInterrupt(const unsigned int);
-void Processor_ACKInterrupt(const unsigned int);
-unsigned int Processor_GetInterruptLineStatus(const unsigned int);
+typedef struct {
+ int time;
+ int value;
+ char element[10];
+ int address;
+} ASSERT_DATA;
 
 
-void Processor_ActivatePSW_Bit(const unsigned int);
-void Processor_DeactivatePSW_Bit(const unsigned int);
-unsigned int Processor_PSW_BitState(const unsigned int);
+ int Asserts_LoadAsserts();
+ void Asserts_CheckAsserts();
+ void Asserts_TerminateAssertions();
 
+extern ASSERT_DATA * asserts;
 
+extern int MAX_ASSERTS;
 
+extern char ASSERTS_FILE[];
 
-int Processor_GetMAR();
-void Processor_SetMAR(int);
-void Processor_GetMBR(BUSDATACELL *);
-void Processor_SetMBR(BUSDATACELL *);
-
-
-
-
-void Processor_SetAccumulator(int);
-int Processor_GetAccumulator();
-
-
-
-void Processor_SetPC(int);
-
-
-
-int Processor_GetRegisterA();
-
-
-
-void Processor_SetPSW(unsigned int);
-unsigned int Processor_GetPSW();
-
-int Processor_Encode(int , int , int);
-int Processor_DecodeOperationCode(BUSDATACELL);
-int Processor_DecodeOperand1(BUSDATACELL);
-int Processor_DecodeOperand2(BUSDATACELL);
-void Processor_GetCodedInstruction(char * , BUSDATACELL );
-int Processor_ToInstruction(char *);
-# 6 "Processor.h" 2
-
-
-
-
-
-
-
-enum PSW_BITS {POWEROFF_BIT=0, ZERO_BIT=1, NEGATIVE_BIT=2, OVERFLOW_BIT=3, EXECUTION_MODE_BIT=7, INTERRUPT_MASKED_BIT=15};
-
-
-
-enum INT_BITS {SYSCALL_BIT=2, EXCEPTION_BIT=6, SYSCALL_SLEEP=7, CLOCKINT_BIT=9};
-
-
-void Processor_InitializeInterruptVectorTable();
-void Processor_InstructionCycleLoop();
-void Processor_RaiseInterrupt(const unsigned int);
-
-char * Processor_ShowPSW();
-int Processor_GetCTRL();
-void Processor_SetCTRL(int);
-# 2 "Processor.c" 2
-
-# 1 "OperatingSystem.h" 1
+extern int GEN_ASSERTS;
+# 3 "MyAspect.c" 2
+# 1 "OperatingSystemBase.h" 1
 
 
 
@@ -152,7 +82,8 @@ void Processor_SetCTRL(int);
 
 
 
-
+# 1 "Simulator.h" 1
+# 5 "ComputerSystem.h" 2
 # 1 "ComputerSystemBase.h" 1
 
 
@@ -196,14 +127,7 @@ extern int intervalBetweenInterrupts;
 
 extern int endSimulationTime;
 # 6 "ComputerSystem.h" 2
-# 1 "Clock.h" 1
 
-
-
-
-void Clock_Update();
-int Clock_GetTime();
-# 7 "ComputerSystem.h" 2
 
 
 void ComputerSystem_PowerOn(int argc, char *argv[], int);
@@ -221,7 +145,12 @@ typedef struct ProgramData {
 
 
 extern PROGRAMS_DATA *programList[20];
-# 5 "OperatingSystem.h" 2
+# 5 "OperatingSystemBase.h" 2
+# 1 "OperatingSystem.h" 1
+
+
+
+
 # 1 "/usr/include/stdio.h" 1 3 4
 # 27 "/usr/include/stdio.h" 3 4
 # 1 "/usr/include/x86_64-linux-gnu/bits/libc-header-start.h" 1 3 4
@@ -1007,9 +936,9 @@ extern void funlockfile (FILE *__stream) __attribute__ ((__nothrow__ , __leaf__)
 # 868 "/usr/include/stdio.h" 3 4
 
 # 6 "OperatingSystem.h" 2
-# 25 "OperatingSystem.h"
+# 32 "OperatingSystem.h"
 
-# 25 "OperatingSystem.h"
+# 32 "OperatingSystem.h"
 enum TypeOfReadyToRunProcessQueues { USERPROCESSQUEUE, DAEMONSQUEUE};
 
 
@@ -1046,648 +975,71 @@ extern int sipID;
 void OperatingSystem_Initialize();
 void OperatingSystem_InterruptLogic(int);
 int OperatingSystem_GetExecutingProcessID();
-# 4 "Processor.c" 2
+# 6 "OperatingSystemBase.h" 2
 
 
-# 1 "/usr/include/string.h" 1 3 4
-# 26 "/usr/include/string.h" 3 4
-# 1 "/usr/include/x86_64-linux-gnu/bits/libc-header-start.h" 1 3 4
-# 27 "/usr/include/string.h" 2 3 4
 
 
+int OperatingSystem_ObtainAnEntryInTheProcessTable();
+int OperatingSystem_ObtainProgramSize(FILE **, char *);
+int OperatingSystem_ObtainPriority(FILE *);
+int OperatingSystem_LoadProgram(FILE *, int, int);
+void OperatingSystem_ReadyToShutdown();
+void OperatingSystem_TerminatingSIP();
+void OperatingSystem_ShowTime(char);
+void OperatingSystem_PrintStatus();
+void OperatingSystem_PrintReadyToRunQueue();
+void OperatingSystem_PrepareTeachersDaemons();
+int OperatingSystem_IsThereANewProgram();
+int OperatingSystem_InitializePartitionTable();
+void OperatingSystem_ShowPartitionTable(char *);
 
 
 
 
-# 1 "/usr/lib/gcc/x86_64-linux-gnu/7/include/stddef.h" 1 3 4
-# 34 "/usr/include/string.h" 2 3 4
-# 42 "/usr/include/string.h" 3 4
 
-# 42 "/usr/include/string.h" 3 4
-extern void *memcpy (void *__restrict __dest, const void *__restrict __src,
-       size_t __n) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
 
+extern heapItem sleepingProcessesQueue[];
+extern int numberOfSleepingProcesses;
 
-extern void *memmove (void *__dest, const void *__src, size_t __n)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
 
 
+extern int numberOfProgramsInArrivalTimeQueue;
+extern heapItem arrivalTimeQueue[];
 
 
 
-extern void *memccpy (void *__restrict __dest, const void *__restrict __src,
-        int __c, size_t __n)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
+extern int baseDaemonsInProgramList;
 
 
 
+typedef struct {
+     int initAddress;
+     int size;
+     int PID;
+} PARTITIONDATA;
 
-extern void *memset (void *__s, int __c, size_t __n) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
 
+extern PARTITIONDATA partitionsTable[4*2];
+# 4 "MyAspect.c" 2
 
-extern int memcmp (const void *__s1, const void *__s2, size_t __n)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2)));
-# 90 "/usr/include/string.h" 3 4
-extern void *memchr (const void *__s, int __c, size_t __n)
-      __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1)));
-# 121 "/usr/include/string.h" 3 4
-extern char *strcpy (char *__restrict __dest, const char *__restrict __src)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
 
-extern char *strncpy (char *__restrict __dest,
-        const char *__restrict __src, size_t __n)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
-
-
-extern char *strcat (char *__restrict __dest, const char *__restrict __src)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
-
-extern char *strncat (char *__restrict __dest, const char *__restrict __src,
-        size_t __n) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
-
-
-extern int strcmp (const char *__s1, const char *__s2)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2)));
-
-extern int strncmp (const char *__s1, const char *__s2, size_t __n)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2)));
-
-
-extern int strcoll (const char *__s1, const char *__s2)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2)));
-
-extern size_t strxfrm (char *__restrict __dest,
-         const char *__restrict __src, size_t __n)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2)));
-
-
-
-# 1 "/usr/include/x86_64-linux-gnu/bits/types/locale_t.h" 1 3 4
-# 22 "/usr/include/x86_64-linux-gnu/bits/types/locale_t.h" 3 4
-# 1 "/usr/include/x86_64-linux-gnu/bits/types/__locale_t.h" 1 3 4
-# 28 "/usr/include/x86_64-linux-gnu/bits/types/__locale_t.h" 3 4
-struct __locale_struct
-{
-
-  struct __locale_data *__locales[13];
-
-
-  const unsigned short int *__ctype_b;
-  const int *__ctype_tolower;
-  const int *__ctype_toupper;
-
-
-  const char *__names[13];
-};
-
-typedef struct __locale_struct *__locale_t;
-# 23 "/usr/include/x86_64-linux-gnu/bits/types/locale_t.h" 2 3 4
-
-typedef __locale_t locale_t;
-# 153 "/usr/include/string.h" 2 3 4
-
-
-extern int strcoll_l (const char *__s1, const char *__s2, locale_t __l)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2, 3)));
-
-
-extern size_t strxfrm_l (char *__dest, const char *__src, size_t __n,
-    locale_t __l) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2, 4)));
-
-
-
-
-
-extern char *strdup (const char *__s)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__malloc__)) __attribute__ ((__nonnull__ (1)));
-
-
-
-
-
-
-extern char *strndup (const char *__string, size_t __n)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__malloc__)) __attribute__ ((__nonnull__ (1)));
-# 225 "/usr/include/string.h" 3 4
-extern char *strchr (const char *__s, int __c)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1)));
-# 252 "/usr/include/string.h" 3 4
-extern char *strrchr (const char *__s, int __c)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1)));
-# 272 "/usr/include/string.h" 3 4
-extern size_t strcspn (const char *__s, const char *__reject)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2)));
-
-
-extern size_t strspn (const char *__s, const char *__accept)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2)));
-# 302 "/usr/include/string.h" 3 4
-extern char *strpbrk (const char *__s, const char *__accept)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2)));
-# 329 "/usr/include/string.h" 3 4
-extern char *strstr (const char *__haystack, const char *__needle)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2)));
-
-
-
-
-extern char *strtok (char *__restrict __s, const char *__restrict __delim)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2)));
-
-
-
-extern char *__strtok_r (char *__restrict __s,
-    const char *__restrict __delim,
-    char **__restrict __save_ptr)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2, 3)));
-
-extern char *strtok_r (char *__restrict __s, const char *__restrict __delim,
-         char **__restrict __save_ptr)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (2, 3)));
-# 384 "/usr/include/string.h" 3 4
-extern size_t strlen (const char *__s)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1)));
-
-
-
-
-extern size_t strnlen (const char *__string, size_t __maxlen)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1)));
-
-
-
-
-extern char *strerror (int __errnum) __attribute__ ((__nothrow__ , __leaf__));
-# 409 "/usr/include/string.h" 3 4
-extern int strerror_r (int __errnum, char *__buf, size_t __buflen) __asm__ ("" "__xpg_strerror_r") __attribute__ ((__nothrow__ , __leaf__))
-
-                        __attribute__ ((__nonnull__ (2)));
-# 427 "/usr/include/string.h" 3 4
-extern char *strerror_l (int __errnum, locale_t __l) __attribute__ ((__nothrow__ , __leaf__));
-
-
-
-# 1 "/usr/include/strings.h" 1 3 4
-# 23 "/usr/include/strings.h" 3 4
-# 1 "/usr/lib/gcc/x86_64-linux-gnu/7/include/stddef.h" 1 3 4
-# 24 "/usr/include/strings.h" 2 3 4
-
-
-
-
-
-
-
-
-
-
-extern int bcmp (const void *__s1, const void *__s2, size_t __n)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2)));
-
-
-extern void bcopy (const void *__src, void *__dest, size_t __n)
-  __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
-
-
-extern void bzero (void *__s, size_t __n) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
-# 68 "/usr/include/strings.h" 3 4
-extern char *index (const char *__s, int __c)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1)));
-# 96 "/usr/include/strings.h" 3 4
-extern char *rindex (const char *__s, int __c)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1)));
-
-
-
-
-
-
-extern int ffs (int __i) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__const__));
-
-
-
-
-
-extern int ffsl (long int __l) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__const__));
-__extension__ extern int ffsll (long long int __ll)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__const__));
-
-
-
-extern int strcasecmp (const char *__s1, const char *__s2)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2)));
-
-
-extern int strncasecmp (const char *__s1, const char *__s2, size_t __n)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2)));
-
-
-
-
-
-
-extern int strcasecmp_l (const char *__s1, const char *__s2, locale_t __loc)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2, 3)));
-
-
-
-extern int strncasecmp_l (const char *__s1, const char *__s2,
-     size_t __n, locale_t __loc)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__pure__)) __attribute__ ((__nonnull__ (1, 2, 4)));
-
-
-
-# 432 "/usr/include/string.h" 2 3 4
-
-
-
-extern void explicit_bzero (void *__s, size_t __n) __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1)));
-
-
-
-extern char *strsep (char **__restrict __stringp,
-       const char *__restrict __delim)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
-
-
-
-
-extern char *strsignal (int __sig) __attribute__ ((__nothrow__ , __leaf__));
-
-
-extern char *__stpcpy (char *__restrict __dest, const char *__restrict __src)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
-extern char *stpcpy (char *__restrict __dest, const char *__restrict __src)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
-
-
-
-extern char *__stpncpy (char *__restrict __dest,
-   const char *__restrict __src, size_t __n)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
-extern char *stpncpy (char *__restrict __dest,
-        const char *__restrict __src, size_t __n)
-     __attribute__ ((__nothrow__ , __leaf__)) __attribute__ ((__nonnull__ (1, 2)));
-# 498 "/usr/include/string.h" 3 4
-
-# 7 "Processor.c" 2
-
-
-
-
-# 10 "Processor.c"
-int Processor_FetchInstruction();
-void Processor_DecodeAndExecuteInstruction();
-void Processor_ManageInterrupts();
-
-
-extern char *InstructionNames[];
-
-
-int registerPC_CPU;
-int registerAccumulator_CPU;
-BUSDATACELL registerIR_CPU;
-unsigned int registerPSW_CPU = 128;
-int registerMAR_CPU;
-BUSDATACELL registerMBR_CPU;
-int registerCTRL_CPU;
-
-int registerA_CPU;
-
-int interruptLines_CPU;
-
-
-int interruptVectorTable[10];
-
-
-char pswmask[] = "----------------";
-
-
-void Processor_InitializeInterruptVectorTable(int interruptVectorInitialAddress)
-{
- int i;
- for (i = 0; i < 10; i++)
-  interruptVectorTable[i] = interruptVectorInitialAddress - 2;
-
- interruptVectorTable[SYSCALL_BIT] = interruptVectorInitialAddress;
- interruptVectorTable[EXCEPTION_BIT] = interruptVectorInitialAddress + 2;
- interruptVectorTable[CLOCKINT_BIT] = interruptVectorInitialAddress + 4;
+before(): execution(int Processor_FetchInstruction()) {
+ Clock_Update();
 }
 
-
-
-
-void Processor_InstructionCycleLoop()
-{
-
- while (!Processor_PSW_BitState(POWEROFF_BIT))
- {
-  if (Processor_FetchInstruction() == 1)
-  {
-   Processor_DecodeAndExecuteInstruction();
-  }
-  if (interruptLines_CPU)
-  {
-
-
-   if (!Processor_PSW_BitState(INTERRUPT_MASKED_BIT))
-   {
-    Processor_ManageInterrupts();
-   }
-  }
- }
+after(): execution(void Processor_DecodeAndExecuteInstruction()){
+    Asserts_CheckAsserts();
 }
 
-
-int Processor_FetchInstruction()
-{
-
-
- registerMAR_CPU = registerPC_CPU;
-
- Buses_write_AddressBus_From_To(CPU, MMU);
-
- registerCTRL_CPU = 0x1;
- Buses_write_ControlBus_From_To(CPU, MMU);
-
- if (registerCTRL_CPU && 0x10)
- {
-
-
-  memcpy((void *)(&registerIR_CPU), (void *)(&registerMBR_CPU), sizeof(BUSDATACELL));
-
-
-  char codedInstruction[13];
-  Processor_GetCodedInstruction(codedInstruction, registerIR_CPU);
-
-
-  ComputerSystem_ShowTime('h');
-
-  ComputerSystem_DebugMessage(68, 'h', codedInstruction);
- }
- else
- {
-
-
-  ComputerSystem_ShowTime('h');
-
-
-  ComputerSystem_DebugMessage(100, 'h', "_ _ _\n");
-  return 0;
- }
- return 1;
+before(): execution(void OperatingSystem_InterruptLogic(int)){
+ Clock_Update();
 }
 
-
-void Processor_DecodeAndExecuteInstruction()
-{
- int tempAcc;
-
-
- int operationCode = Processor_DecodeOperationCode(registerIR_CPU);
- int operand1 = Processor_DecodeOperand1(registerIR_CPU);
- int operand2 = Processor_DecodeOperand2(registerIR_CPU);
-
- Processor_DeactivatePSW_Bit(OVERFLOW_BIT);
-
-
- switch (operationCode)
- {
-
-
- case ADD_INST:
-  registerAccumulator_CPU = operand1 + operand2;
-  Processor_CheckOverflow(operand1, operand2);
-  registerPC_CPU++;
-  break;
-
-
- case SHIFT_INST:
-  if (operand1 < 0)
-  {
-   if (registerAccumulator_CPU & (-1 << (sizeof(int) * 8 - ((-operand1) & 0x1f))))
-    Processor_ActivatePSW_Bit(OVERFLOW_BIT);
-   registerAccumulator_CPU <<= ((-operand1) & 0x1f);
-  }
-  else
-   registerAccumulator_CPU >>= operand1 & 0x1f;
-
-  registerPC_CPU++;
-  break;
-
-
- case DIV_INST:
-  if (operand2 == 0)
-   Processor_RaiseInterrupt(EXCEPTION_BIT);
-  else
-  {
-   registerAccumulator_CPU = operand1 / operand2;
-   registerPC_CPU++;
-  }
-  break;
-
-
- case TRAP_INST:
-  Processor_RaiseInterrupt(SYSCALL_BIT);
-  registerA_CPU = operand1;
-  registerPC_CPU++;
-  break;
-
-
- case NOP_INST:
-  registerPC_CPU++;
-  break;
-
-
- case JUMP_INST:
-  registerPC_CPU += operand1;
-  break;
-
-
- case ZJUMP_INST:
-  if (Processor_PSW_BitState(ZERO_BIT))
-   registerPC_CPU += operand1;
-  else
-   registerPC_CPU++;
-  break;
-
-
- case WRITE_INST:
-  registerMBR_CPU.cell = registerAccumulator_CPU;
-  registerMAR_CPU = operand1;
-
-  Buses_write_DataBus_From_To(CPU, MAINMEMORY);
-
-  Buses_write_AddressBus_From_To(CPU, MMU);
-
-  registerCTRL_CPU = 0x2;
-  Buses_write_ControlBus_From_To(CPU, MMU);
-  registerPC_CPU++;
-  break;
-
-
-
- case MEMADD_INST:
-  registerMAR_CPU = operand2;
-
-  Buses_write_AddressBus_From_To(CPU, MMU);
-
-  registerCTRL_CPU = 0x1;
-  Buses_write_ControlBus_From_To(CPU, MMU);
-
-
-  registerAccumulator_CPU = operand1 + registerMBR_CPU.cell;
-  registerPC_CPU++;
-  break;
-
-
- case READ_INST:
-  registerMAR_CPU = operand1;
-
-  Buses_write_AddressBus_From_To(CPU, MMU);
-
-  registerCTRL_CPU = 0x1;
-  Buses_write_ControlBus_From_To(CPU, MMU);
-
-
-  registerAccumulator_CPU = registerMBR_CPU.cell;
-  registerPC_CPU++;
-  break;
-
-
- case INC_INST:
-  tempAcc = registerAccumulator_CPU;
-  registerAccumulator_CPU += operand1;
-  Processor_CheckOverflow(tempAcc, operand1);
-  registerPC_CPU++;
-  break;
-
-
- case HALT_INST:
-
-  if (Processor_PSW_BitState(EXECUTION_MODE_BIT))
-  {
-   Processor_ActivatePSW_Bit(POWEROFF_BIT);
-  }
-  else
-  {
-   Processor_RaiseInterrupt(EXCEPTION_BIT);
-  }
-
-  break;
-
-
- case OS_INST:
-
-
-
-  if (Processor_PSW_BitState(EXECUTION_MODE_BIT))
-  {
-
-
-
-
-
-   ComputerSystem_DebugMessage(130, 'h', InstructionNames[operationCode], operand1, operand2,
-          OperatingSystem_GetExecutingProcessID(), registerPC_CPU,
-          registerAccumulator_CPU, registerPSW_CPU, Processor_ShowPSW());
-
-
-
-   OperatingSystem_InterruptLogic(operand1);
-   registerPC_CPU++;
-
-   Processor_UpdatePSW();
-  }
-  else
-  {
-   Processor_RaiseInterrupt(EXCEPTION_BIT);
-  }
-
-  return;
-
-
- case IRET_INST:
-
-  if (Processor_PSW_BitState(EXECUTION_MODE_BIT))
-  {
-   registerPC_CPU = Processor_CopyFromSystemStack(300 - 1);
-   registerPSW_CPU = Processor_CopyFromSystemStack(300 - 2);
-
-   registerAccumulator_CPU = Processor_CopyFromSystemStack(300 - 3);
-  }
-  else
-  {
-   Processor_RaiseInterrupt(EXCEPTION_BIT);
-  }
-  break;
-
-
- default:
-  registerPC_CPU++;
-  break;
- }
-
-
- Processor_UpdatePSW();
-
-
-
-
-
-
- ComputerSystem_DebugMessage(130, 'h', InstructionNames[operationCode], operand1, operand2,
-        OperatingSystem_GetExecutingProcessID(), registerPC_CPU, registerAccumulator_CPU,
-        registerPSW_CPU, Processor_ShowPSW());
-
+after(): execution(void OperatingSystem_PrepareDaemons(int)){
+    OperatingSystem_PrepareTeachersDaemons();
 }
 
-
-void Processor_ManageInterrupts()
-{
-
- int i;
-
- for (i = 0; i < 10; i++)
-
-  if (Processor_GetInterruptLineStatus(i))
-  {
-
-   Processor_ACKInterrupt(i);
-
-   Processor_CopyInSystemStack(300 - 1, registerPC_CPU);
-   Processor_CopyInSystemStack(300 - 2, registerPSW_CPU);
-
-   Processor_CopyInSystemStack(300 - 3, registerAccumulator_CPU);
-
-   Processor_ActivatePSW_Bit(EXECUTION_MODE_BIT);
-
-
-
-   Processor_ActivatePSW_Bit(INTERRUPT_MASKED_BIT);
-
-
-
-   registerPC_CPU = interruptVectorTable[i];
-   break;
-  }
-}
-
-char *Processor_ShowPSW()
-{
- strcpy(pswmask, "----------------");
- int tam = strlen(pswmask) - 1;
- if (Processor_PSW_BitState(EXECUTION_MODE_BIT))
-  pswmask[tam - EXECUTION_MODE_BIT] = 'X';
- if (Processor_PSW_BitState(OVERFLOW_BIT))
-  pswmask[tam - OVERFLOW_BIT] = 'F';
- if (Processor_PSW_BitState(NEGATIVE_BIT))
-  pswmask[tam - NEGATIVE_BIT] = 'N';
- if (Processor_PSW_BitState(ZERO_BIT))
-  pswmask[tam - ZERO_BIT] = 'Z';
- if (Processor_PSW_BitState(POWEROFF_BIT))
-  pswmask[tam - POWEROFF_BIT] = 'S';
- if (Processor_PSW_BitState(INTERRUPT_MASKED_BIT))
-  pswmask[tam - INTERRUPT_MASKED_BIT] = 'M';
- return pswmask;
+after(): execution(void Processor_InstructionCycleLoop()){
+    Asserts_TerminateAssertions();
 }

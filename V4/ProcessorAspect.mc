@@ -120,24 +120,22 @@ int Processor_DecodeOperand1(BUSDATACELL);
 int Processor_DecodeOperand2(BUSDATACELL);
 void Processor_GetCodedInstruction(char * , BUSDATACELL );
 int Processor_ToInstruction(char *);
+void Processor_RaiseException(int);
 # 6 "Processor.h" 2
-
-
-
-
-
-
-
+# 15 "Processor.h"
 enum PSW_BITS {POWEROFF_BIT=0, ZERO_BIT=1, NEGATIVE_BIT=2, OVERFLOW_BIT=3, EXECUTION_MODE_BIT=7, INTERRUPT_MASKED_BIT=15};
 
 
 
 enum INT_BITS {SYSCALL_BIT=2, EXCEPTION_BIT=6, SYSCALL_SLEEP=7, CLOCKINT_BIT=9};
 
+enum EXCEPTIONS {DIVISIONBYZERO, INVALIDPROCESSORMODE, INVALIDADDRESS, INVALIDINSTRUCTION};
+
 
 void Processor_InitializeInterruptVectorTable();
 void Processor_InstructionCycleLoop();
 void Processor_RaiseInterrupt(const unsigned int);
+int Processor_GetRegisterB();
 
 char * Processor_ShowPSW();
 int Processor_GetCTRL();
@@ -1007,9 +1005,9 @@ extern void funlockfile (FILE *__stream) __attribute__ ((__nothrow__ , __leaf__)
 # 868 "/usr/include/stdio.h" 3 4
 
 # 6 "OperatingSystem.h" 2
-# 25 "OperatingSystem.h"
+# 32 "OperatingSystem.h"
 
-# 25 "OperatingSystem.h"
+# 32 "OperatingSystem.h"
 enum TypeOfReadyToRunProcessQueues { USERPROCESSQUEUE, DAEMONSQUEUE};
 
 
@@ -1354,6 +1352,8 @@ int registerCTRL_CPU;
 
 int registerA_CPU;
 
+int registerB_CPU;
+
 int interruptLines_CPU;
 
 
@@ -1371,7 +1371,6 @@ void Processor_InitializeInterruptVectorTable(int interruptVectorInitialAddress)
 
  interruptVectorTable[SYSCALL_BIT] = interruptVectorInitialAddress;
  interruptVectorTable[EXCEPTION_BIT] = interruptVectorInitialAddress + 2;
- interruptVectorTable[CLOCKINT_BIT] = interruptVectorInitialAddress + 4;
 }
 
 
@@ -1478,7 +1477,10 @@ void Processor_DecodeAndExecuteInstruction()
 
  case DIV_INST:
   if (operand2 == 0)
-   Processor_RaiseInterrupt(EXCEPTION_BIT);
+
+
+   Processor_RaiseException(DIVISIONBYZERO);
+
   else
   {
    registerAccumulator_CPU = operand1 / operand2;
@@ -1488,7 +1490,10 @@ void Processor_DecodeAndExecuteInstruction()
 
 
  case TRAP_INST:
+
+
   Processor_RaiseInterrupt(SYSCALL_BIT);
+
   registerA_CPU = operand1;
   registerPC_CPU++;
   break;
@@ -1571,7 +1576,10 @@ void Processor_DecodeAndExecuteInstruction()
   }
   else
   {
-   Processor_RaiseInterrupt(EXCEPTION_BIT);
+
+
+   Processor_RaiseException(INVALIDPROCESSORMODE);
+
   }
 
   break;
@@ -1601,7 +1609,10 @@ void Processor_DecodeAndExecuteInstruction()
   }
   else
   {
-   Processor_RaiseInterrupt(EXCEPTION_BIT);
+
+
+   Processor_RaiseException(INVALIDPROCESSORMODE);
+
   }
 
   return;
@@ -1618,13 +1629,21 @@ void Processor_DecodeAndExecuteInstruction()
   }
   else
   {
-   Processor_RaiseInterrupt(EXCEPTION_BIT);
+
+
+   Processor_RaiseException(INVALIDPROCESSORMODE);
+
   }
   break;
 
 
  default:
-  registerPC_CPU++;
+
+
+
+  Processor_RaiseException(INVALIDINSTRUCTION);
+
+
   break;
  }
 
@@ -1690,4 +1709,12 @@ char *Processor_ShowPSW()
  if (Processor_PSW_BitState(INTERRUPT_MASKED_BIT))
   pswmask[tam - INTERRUPT_MASKED_BIT] = 'M';
  return pswmask;
+}
+
+
+
+
+
+int Processor_GetRegisterB(){
+ return registerB_CPU;
 }

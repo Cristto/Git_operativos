@@ -509,6 +509,7 @@ void OperatingSystem_TerminateProcess()
 		// Simulation must finish, telling sipID to finish
 		OperatingSystem_ReadyToShutdown();
 	}
+
 	// Select the next process to execute (sipID if no more user processes)
 	selectedProcess = OperatingSystem_ShortTermScheduler();
 
@@ -633,13 +634,16 @@ void OperatingSystem_HandleSystemCall()
 		pid_proceso_ready = OperatingSystem_ShortTermScheduler();
 		// se mete este proceso en el procesador
 		OperatingSystem_Dispatch(pid_proceso_ready);
-		break;
 		//end ex-n
 
 		// V2 Ej 5.e
 		//ex-n
 		OperatingSystem_PrintStatus();
 		//end ex-n
+		break;
+		
+
+		
 	}
 }
 
@@ -690,7 +694,7 @@ void OperatingSystem_HandleClockInterrupt()
 
 		contador++;
 		//Sacamos el proceso de la cola de dormidos ya que ya no estaria bloqueado.
-		aux_pid=Heap_poll(sleepingProcessesQueue, QUEUE_WAKEUP, &numberOfSleepingProcesses);
+		aux_pid = Heap_poll(sleepingProcessesQueue, QUEUE_WAKEUP, &numberOfSleepingProcesses);
 		OperatingSystem_MoveToTheREADYState(aux_pid);
 		aux_pid = Heap_getFirst(sleepingProcessesQueue, numberOfSleepingProcesses);
 	}
@@ -724,7 +728,7 @@ void OperatingSystem_HandleClockInterrupt()
 				{
 
 					pid_proceso_ready = Heap_poll(readyToRunQueue[USERPROCESSQUEUE], QUEUE_PRIORITY,
-									&numberOfReadyToRunProcesses[USERPROCESSQUEUE]);
+												  &numberOfReadyToRunProcesses[USERPROCESSQUEUE]);
 
 					OperatingSystem_ShowTime(SHORTTERMSCHEDULE);
 					ComputerSystem_DebugMessage(121, SHORTTERMSCHEDULE,
@@ -738,8 +742,7 @@ void OperatingSystem_HandleClockInterrupt()
 				}
 			}
 		}
-		else
-			if (numberOfReadyToRunProcesses[DAEMONSQUEUE] > 0)
+		else if (numberOfReadyToRunProcesses[DAEMONSQUEUE] > 0)
 		{
 			for (i = 0; i < numberOfReadyToRunProcesses[DAEMONSQUEUE]; i++)
 			{
@@ -750,8 +753,8 @@ void OperatingSystem_HandleClockInterrupt()
 				{
 
 					pid_proceso_ready = Heap_poll(readyToRunQueue[DAEMONSQUEUE], QUEUE_PRIORITY,
-									&numberOfReadyToRunProcesses[DAEMONSQUEUE]);
-									
+												  &numberOfReadyToRunProcesses[DAEMONSQUEUE]);
+
 					OperatingSystem_ShowTime(SHORTTERMSCHEDULE);
 					ComputerSystem_DebugMessage(121, SHORTTERMSCHEDULE,
 												executingProcessID,
@@ -765,12 +768,8 @@ void OperatingSystem_HandleClockInterrupt()
 			}
 		}
 	}
-
-	if(contador == 0){
-		OperatingSystem_ReadyToShutdown();
-	}
+	
 }
-
 
 // V1 Ej 11.b
 

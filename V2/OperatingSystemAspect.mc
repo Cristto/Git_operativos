@@ -3263,6 +3263,7 @@ void OperatingSystem_TerminateProcess()
   OperatingSystem_ReadyToShutdown();
  }
 
+
  selectedProcess = OperatingSystem_ShortTermScheduler();
 
 
@@ -3386,12 +3387,15 @@ void OperatingSystem_HandleSystemCall()
   pid_proceso_ready = OperatingSystem_ShortTermScheduler();
 
   OperatingSystem_Dispatch(pid_proceso_ready);
-  break;
 
 
 
 
   OperatingSystem_PrintStatus();
+
+  break;
+
+
 
  }
 }
@@ -3443,11 +3447,11 @@ void OperatingSystem_HandleClockInterrupt()
 
   contador++;
 
-  aux_pid=Heap_poll(sleepingProcessesQueue, 0, &numberOfSleepingProcesses);
+  aux_pid = Heap_poll(sleepingProcessesQueue, 0, &numberOfSleepingProcesses);
   OperatingSystem_MoveToTheREADYState(aux_pid);
   aux_pid = Heap_getFirst(sleepingProcessesQueue, numberOfSleepingProcesses);
  }
-# 707 "OperatingSystem.c"
+# 711 "OperatingSystem.c"
  int pid_proceso_ready;
  int prioridad_proceso_ready;
  int i;
@@ -3468,7 +3472,7 @@ void OperatingSystem_HandleClockInterrupt()
     {
 
      pid_proceso_ready = Heap_poll(readyToRunQueue[USERPROCESSQUEUE], 1,
-         &numberOfReadyToRunProcesses[USERPROCESSQUEUE]);
+              &numberOfReadyToRunProcesses[USERPROCESSQUEUE]);
 
      OperatingSystem_ShowTime('s');
      ComputerSystem_DebugMessage(121, 's',
@@ -3482,8 +3486,7 @@ void OperatingSystem_HandleClockInterrupt()
     }
    }
   }
-  else
-   if (numberOfReadyToRunProcesses[DAEMONSQUEUE] > 0)
+  else if (numberOfReadyToRunProcesses[DAEMONSQUEUE] > 0)
   {
    for (i = 0; i < numberOfReadyToRunProcesses[DAEMONSQUEUE]; i++)
    {
@@ -3494,7 +3497,7 @@ void OperatingSystem_HandleClockInterrupt()
     {
 
      pid_proceso_ready = Heap_poll(readyToRunQueue[DAEMONSQUEUE], 1,
-         &numberOfReadyToRunProcesses[DAEMONSQUEUE]);
+              &numberOfReadyToRunProcesses[DAEMONSQUEUE]);
 
      OperatingSystem_ShowTime('s');
      ComputerSystem_DebugMessage(121, 's',
@@ -3510,11 +3513,7 @@ void OperatingSystem_HandleClockInterrupt()
   }
  }
 
- if(contador == 0){
-  OperatingSystem_ReadyToShutdown();
- }
 }
-
 
 
 

@@ -42,6 +42,7 @@ void Processor_InitializeInterruptVectorTable(int interruptVectorInitialAddress)
 
 	interruptVectorTable[SYSCALL_BIT] = interruptVectorInitialAddress;		 // SYSCALL_BIT=2
 	interruptVectorTable[EXCEPTION_BIT] = interruptVectorInitialAddress + 2; // EXCEPTION_BIT=6
+	interruptVectorTable[CLOCKINT_BIT] = interruptVectorInitialAddress + 4; //CLOCKING_BIT=9
 }
 
 // This is the instruction cycle loop (fetch, decoding, execution, etc.).

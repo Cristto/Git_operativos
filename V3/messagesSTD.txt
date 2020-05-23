@@ -14,7 +14,7 @@
 111,New process [@G%d - %s@@] moving to the [@G%s@@]\n
 
 112,\t\tUSER:
-113,\t\tDAEMONS:
+113,\n\t\tDAEMONS:
 114, [@G%d@@,%d]
 
 115,Process [@G%d - %s@@] will transfer the control of the processor to process [@G%d - %s@@]\n
