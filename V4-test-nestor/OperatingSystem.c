@@ -360,7 +360,7 @@ int OperatingSystem_ObtainMainMemory(int processSize, int PID, int index)
 	OperatingSystem_ShowTime(SYSMEM);
 	ComputerSystem_DebugMessage(142, SYSMEM,
 								PID,
-								programList[index]->executableName,
+								index,
 								processSize);
 	//V4 Ej 6.a
 	//ex-n
